@@ -1,7 +1,7 @@
 {
 "short_name": "ADC Faculty",
 "name": "ADC Smart Admin Portal",
-"start_url": "/",
+"start_url": "/ADC-Firebase/",
 "display": "standalone",
 "theme_color": "#800000",
 "background_color": "#f4f7f6",
