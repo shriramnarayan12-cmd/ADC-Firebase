@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Student record in the ADC portal",
+      "type": "object",
+      "properties": {
+        "sl_no": { "type": "string", "description": "Serial number" },
+        "name": { "type": "string", "description": "Full name of the student" },
+        "reg_no": { "type": "string", "description": "Registration number (Document ID)" },
+        "old_batch": { "type": "string", "description": "Previous batch name" },
+        "new_batch": { "type": "string", "description": "Current batch name" },
+        "contact_num": { "type": "string", "description": "Contact phone number" },
+        "email": { "type": "string", "description": "Email address" },
+        "year_of_joining": { "type": "string", "description": "Year the student joined" },
+        "remarks": { "type": "string", "description": "Additional notes" },
+        "batch_name": { "type": "string", "description": "The batch this student belongs to" }
+      },
+      "required": ["name", "reg_no", "batch_name"]
+    },
+    "AttendanceRecord": {
+      "title": "Attendance Record",
+      "description": "Daily attendance record for a batch",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "description": "Date of attendance (YYYY-MM-DD)" },
+        "batch_name": { "type": "string", "description": "Batch name" },
+        "presentStudents": { "type": "array", "items": { "type": "string" }, "description": "List of registration numbers present" },
+        "absentStudents": { "type": "array", "items": { "type": "string" }, "description": "List of registration numbers absent" },
+        "sessionType": { "type": "string", "description": "Type of session (Theory/Practical/etc)" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["date", "batch_name", "presentStudents"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Collection of student records"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "AttendanceRecord",
+      "description": "Collection of attendance records"
+    }
+  }
+}

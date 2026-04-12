@@ -1,0 +1,104 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: students
+// Document ID: reg_no (string)
+// Fields:
+//   - sl_no: string
+//   - name: string (required)
+//   - reg_no: string (required)
+//   - old_batch: string
+//   - new_batch: string
+//   - contact_num: string
+//   - email: string
+//   - year_of_joining: string
+//   - remarks: string
+//   - batch_name: string (required)
+//
+// Collection: attendance
+// Document ID: auto-generated
+// Fields:
+//   - date: string (required)
+//   - batch_name: string (required)
+//   - presentStudents: list of strings (required)
+//   - absentStudents: list of strings
+//   - sessionType: string
+//   - timestamp: timestamp
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.email == "shriramnarayan12@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidStudent(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.reg_no is string && data.reg_no.size() > 0 && data.reg_no.size() < 50 &&
+             data.batch_name is string && data.batch_name.size() > 0 && data.batch_name.size() < 100 &&
+             (!('sl_no' in data) || (data.sl_no is string && data.sl_no.size() < 20)) &&
+             (!('old_batch' in data) || (data.old_batch is string && data.old_batch.size() < 100)) &&
+             (!('new_batch' in data) || (data.new_batch is string && data.new_batch.size() < 100)) &&
+             (!('contact_num' in data) || (data.contact_num is string && data.contact_num.size() < 20)) &&
+             (!('email' in data) || (data.email is string && data.email.size() < 100)) &&
+             (!('year_of_joining' in data) || (data.year_of_joining is string && data.year_of_joining.size() < 10)) &&
+             (!('remarks' in data) || (data.remarks is string && data.remarks.size() < 1000));
+    }
+
+    function isValidAttendance(data) {
+      return data.date is string && data.date.size() > 0 && data.date.size() < 20 &&
+             data.batch_name is string && data.batch_name.size() > 0 && data.batch_name.size() < 100 &&
+             data.presentStudents is list && data.presentStudents.size() < 500 &&
+             (!('absentStudents' in data) || (data.absentStudents is list && data.absentStudents.size() < 500)) &&
+             (!('sessionType' in data) || (data.sessionType is string && data.sessionType.size() < 100));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /students/{studentId} {
+      // Allow authenticated users (including anonymous ones from the portal gate) to read and write
+      // In a more restrictive setup, we'd limit write to admins, but the app allows faculty to edit.
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && hasRequiredFields(['name', 'reg_no', 'batch_name']) && isValidStudent(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /attendance/{attendanceId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && hasRequiredFields(['date', 'batch_name', 'presentStudents']) && isValidAttendance(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Test connection path
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}

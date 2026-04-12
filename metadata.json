@@ -1,0 +1,5 @@
+{
+  "name": "ADC Faculty Portal",
+  "description": "A comprehensive portal for ADC faculty to manage students, attendance, and payments.",
+  "requestFramePermissions": []
+}
