@@ -305,7 +305,7 @@ export default function App() {
         setCurrentData(freshData);
         
         // Extract unique batches
-        const uniqueBatches = [...new Set(freshData.map(s => s.batch_name))].filter(Boolean).sort() as string[];
+        const uniqueBatches = [...new Set(freshData.map(s => s.new_batch || s.batch_name))].filter(Boolean).sort() as string[];
         setBatches(uniqueBatches);
         
         if (!currentBatchName && uniqueBatches.length > 0) {
@@ -989,7 +989,7 @@ export default function App() {
   };
 
   const filteredData = currentData.filter(r => 
-    r.batch_name === currentBatchName &&
+    (r.new_batch || r.batch_name) === currentBatchName &&
     Object.values(r).some(v => String(v).toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -1423,7 +1423,7 @@ export default function App() {
                 </div>
                 <div>
                   <label>New Batch</label>
-                  <input type="text" value={formData.new_batch} onChange={(e) => setFormData({...formData, new_batch: e.target.value})} />
+                  <input list="batch-suggestions" type="text" value={formData.new_batch} onChange={(e) => setFormData({...formData, new_batch: e.target.value})} />
                 </div>
                 <div>
                   <label>Contact Num</label>
