@@ -60,13 +60,6 @@ const handleFirestoreError = (error: unknown, operationType: OperationType, path
 // --- Constants & Configuration ---
 const DB_PREFIX = "ADC_STUDENT_CACHE_";
 
-const GID_MAP: Record<string, string> = {
-  "Apoorva 7am": "266127589", "Apoorva 8am": "1889447347", "Bhavana 6pm": "1275887889", "Bhavana 8pm": "1776876141",
-  "Dimple ": "1069956842", "Harshitha": "601897457", "Maanvi 7am": "1833547918", "Maanvi 8am": "650467563",
-  "NR 8pm": "337144518", "Pooja 6pm": "570547654", "Pooja 7pm": "2057818476", "Rohini 5pm": "121118195",
-  "Rohini 6pm": "1926838675", "Rohini Mon-Thu 7pm": "1683652627", "Rohini Wed-Fri 7pm": "1256431252", "Sanchita 5pm": "1492684900", "Spurthi 7pm": "225518473", "Spurthi 8pm": "2010826138", "NR- 7 PM": "1962974927", "Manasa": "1281489289", "Medha 5pm": "10047690", "Medha 6pm": "1658486704", "Indu 5pm": "505794606", "Meera Saturday 6 PM": "1017692846", "Meera Monday 6 PM": "909937701", "NR 11am": "1582436665"
-};
-
 const MAPPED_TEXT: Record<string, Record<number, string>> = {
     e1: { 8: "Very good: Work on more details with eyes, eye brows & finger tips, practice every day for one hour", 5: "Good: Work on repetitions and every time observe keenly how the relationship builds between different parts of the body. Consciously give it a wholesome treatment. Practice one hour every day", 1: "Could Improve: Practice each movement five times before you move to next and keep it going till you complete the lesson, Practice every day for 1- 2 hours" },
     e2: { 8: "Very good: Keep practising to maintain because without practise quality can drop. Work on all compositions learnt", 5: "Good: Work on finishing each action fully to get to next level, repeat practise helps in better clarity", 1: "Could Improve: Keep conscious awareness of movements & details it requires, repeat all movements / segments five times. Practise every day for 1-2 hrs" },
@@ -362,113 +355,6 @@ export default function App() {
         setIsSyncing(false);
     }
   };
-
-  // Temporary helper to add the requested students
-  const addRequestedStudents = async () => {
-    const students = [
-      {
-        sl_no: "4",
-        name: "Arathi Jha",
-        reg_no: "KTK0340",
-        old_batch: "KTK Sat 7am - Sun 9am Apoorva",
-        new_batch: "KTK Sat 7am - Sun 10am Apoorva",
-        contact_num: "9902577996",
-        email: "artijha.25@gmail.com",
-        year_of_joining: "-",
-        remarks: "",
-        batch_name: "Apoorva 7am"
-      },
-      {
-        sl_no: "5",
-        name: "Chandrika",
-        reg_no: "KTK0013",
-        old_batch: "KTK Sat 7am - Sun 9am Apoorva",
-        new_batch: "KTK Sat 7am - Sun 10am Apoorva",
-        contact_num: "9480318724",
-        email: "kulkarni.chandrika@gmail.com",
-        year_of_joining: "2021",
-        remarks: "",
-        batch_name: "Apoorva 7am"
-      },
-      {
-        sl_no: "6",
-        name: "Dr. Vijayageetha",
-        reg_no: "KTK0387",
-        old_batch: "KTK Sat 7am - Sun 9am Apoorva",
-        new_batch: "KTK Sat 7am - Sun 10am Apoorva",
-        contact_num: "9449485623",
-        email: "drvijayageetharaju@gmail.com",
-        year_of_joining: "2021",
-        remarks: "",
-        batch_name: "Apoorva 7am"
-      },
-      {
-        sl_no: "7",
-        name: "Meghana S",
-        reg_no: "KTK0412",
-        old_batch: "KTK Sat 7am - Sun 9am Apoorva",
-        new_batch: "KTK Sat 7am - Sun 10am Apoorva",
-        contact_num: "9008187793",
-        email: "meghanas079@gmail.com",
-        year_of_joining: "2021",
-        remarks: "",
-        batch_name: "Apoorva 7am"
-      },
-      {
-        sl_no: "8",
-        name: "Moksha Sara",
-        reg_no: "KTK0344",
-        old_batch: "KTK Sat 7am - Sun 9am Apoorva",
-        new_batch: "KTK Sat 7am - Sun 10am Apoorva",
-        contact_num: "7022062862",
-        email: "mokshasara05@gmail.com",
-        year_of_joining: "-",
-        remarks: "",
-        batch_name: "Apoorva 7am"
-      },
-      {
-        sl_no: "9",
-        name: "Pooja Nagaraja",
-        reg_no: "KTK0546",
-        old_batch: "KTK Sat 7am - Sun 9am Apoorva",
-        new_batch: "KTK Sat 7am - Sun 10am Apoorva",
-        contact_num: "7411965308",
-        email: "poojanagaraja5@gmail.com",
-        year_of_joining: "2022",
-        remarks: "",
-        batch_name: "Apoorva 7am"
-      }
-    ];
-    
-    setIsSyncing(true);
-    try {
-      for (const student of students) {
-        await setDoc(doc(db, 'students', student.reg_no), student);
-        console.log(`Manually added student ${student.reg_no}`);
-      }
-      await loadBatchData();
-    } catch (e) {
-      console.error("Manual add failed", e);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-  
-  useEffect(() => {
-    const checkAndAdd = async () => {
-        if (!isLoggedIn) return;
-        try {
-            // Check if the last one exists as a proxy for the batch
-            const snap = await getDoc(doc(db, 'students', 'KTK0546'));
-            if (!snap.exists()) {
-                await addRequestedStudents();
-            }
-        } catch (e) {
-            console.error("Check and add failed", e);
-        }
-    };
-    checkAndAdd();
-  }, [isLoggedIn]);
 
   const handleUpdateStudentPrompt = async (existingRegNo?: string) => {
     const regNo = existingRegNo || prompt("Enter Student Registration Number to Update:");
