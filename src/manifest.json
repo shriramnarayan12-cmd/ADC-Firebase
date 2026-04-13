@@ -1,0 +1,32 @@
+{
+  "short_name": "ADC Faculty",
+  "name": "ADC Smart Admin Portal",
+  "start_url": "index.html",
+  "display": "standalone",
+  "theme_color": "#800000",
+  "background_color": "#f4f7f6",
+  "icons": [
+    {
+      "src": "logo512.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "orientation": "portrait-primary",
+  "description": "Faculty administration suite for student registry, attendance tracking, and performance evaluation.",
+  "screenshots": [
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "form_factor": "wide"
+    }
+  ]
+}
