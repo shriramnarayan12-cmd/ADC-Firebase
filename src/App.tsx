@@ -178,6 +178,10 @@ export default function App() {
   
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBatchFeeModal, setShowBatchFeeModal] = useState(false);
+  const [batchFeeForm, setBatchFeeForm] = useState({ batch_name: "", base_fee: "" });
+  const [showFreqModal, setShowFreqModal] = useState(false);
+  const [freqForm, setFreqForm] = useState({ batch_name: "", reg_no: "", frequency: "Quarterly" });
   const [evalState, setEvalState] = useState<Record<string, string>>({
     e1: '8', e2: '8', e3: '8', e4: '8', e5: '8', e6: '8', e7: '8', e8: '8', e9: '8', e10: '8', e11: '8', e12: '8', e13: '8',
     feedback: ''
@@ -353,6 +357,39 @@ export default function App() {
         handleFirestoreError(err, OperationType.WRITE, path);
     } finally {
         setIsSyncing(false);
+    }
+  };
+
+  const handleSaveBatchFee = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!batchFeeForm.batch_name || !batchFeeForm.base_fee) {
+      alert("Please fill all fields");
+      return;
+    }
+    try {
+      await setDoc(doc(db, 'batches', batchFeeForm.batch_name), { base_fee: Number(batchFeeForm.base_fee) }, { merge: true });
+      alert("Batch fee set successfully!");
+      setShowBatchFeeModal(false);
+      setBatchFeeForm({ batch_name: "", base_fee: "" });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `batches/${batchFeeForm.batch_name}`);
+    }
+  };
+
+  const handleSaveFreq = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!freqForm.batch_name || !freqForm.reg_no || !freqForm.frequency) {
+      alert("Please fill all fields");
+      return;
+    }
+    try {
+      await setDoc(doc(db, 'students', freqForm.reg_no), { payment_frequency: freqForm.frequency }, { merge: true });
+      alert("Student frequency set successfully!");
+      setShowFreqModal(false);
+      setFreqForm({ batch_name: "", reg_no: "", frequency: "Quarterly" });
+      await loadBatchData();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `students/${freqForm.reg_no}`);
     }
   };
 
@@ -1349,6 +1386,8 @@ export default function App() {
             <h2 style={{ marginTop: 0, fontSize: '1.2rem' }}>System Administration</h2>
             <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => { setIsEditMode(false); setShowAddModal(true); }}>➕ Add New Student</button>
+              <button className="btn" onClick={() => setShowBatchFeeModal(true)}>💰 Set Batch Base Fee</button>
+              <button className="btn" onClick={() => setShowFreqModal(true)}>💳 Set Student Frequency</button>
               <button 
                 className="btn" 
                 style={{ 
@@ -1452,6 +1491,105 @@ export default function App() {
               <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
                 <button type="submit" className="btn" style={{ flex: 1 }}>{isEditMode ? 'Update Details' : 'Save Student'}</button>
                 <button type="button" className="btn" style={{ flex: 1, background: '#666' }} onClick={() => { setShowAddModal(false); setIsEditMode(false); }}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showBatchFeeModal && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px' }}>
+          <div className="card" style={{ maxWidth: '400px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: 'var(--primary)' }}>Set Batch Base Fee</h2>
+              <button className="btn btn-mini" style={{ background: '#666' }} onClick={() => setShowBatchFeeModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSaveBatchFee}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div>
+                  <label>Batch Name</label>
+                  <select 
+                    required 
+                    value={batchFeeForm.batch_name} 
+                    onChange={(e) => setBatchFeeForm({...batchFeeForm, batch_name: e.target.value})}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  >
+                    <option value="">Select Batch</option>
+                    {batches.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label>Base Fee (₹)</label>
+                  <input 
+                    type="number" 
+                    required 
+                    value={batchFeeForm.base_fee} 
+                    onChange={(e) => setBatchFeeForm({...batchFeeForm, base_fee: e.target.value})} 
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  />
+                </div>
+              </div>
+              <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn" style={{ flex: 1 }}>Save Fee</button>
+                <button type="button" className="btn" style={{ flex: 1, background: '#666' }} onClick={() => setShowBatchFeeModal(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showFreqModal && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px' }}>
+          <div className="card" style={{ maxWidth: '400px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: 'var(--primary)' }}>Set Student Frequency</h2>
+              <button className="btn btn-mini" style={{ background: '#666' }} onClick={() => setShowFreqModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSaveFreq}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div>
+                  <label>Batch Name</label>
+                  <select 
+                    required 
+                    value={freqForm.batch_name} 
+                    onChange={(e) => setFreqForm({...freqForm, batch_name: e.target.value, reg_no: ""})}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  >
+                    <option value="">Select Batch</option>
+                    {batches.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label>Student</label>
+                  <select 
+                    required 
+                    value={freqForm.reg_no} 
+                    onChange={(e) => setFreqForm({...freqForm, reg_no: e.target.value})}
+                    disabled={!freqForm.batch_name}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  >
+                    <option value="">Select Student</option>
+                    {currentData.filter(s => (s.new_batch || s.batch_name) === freqForm.batch_name).map(s => (
+                      <option key={s.reg_no} value={s.reg_no}>{s.name} ({s.reg_no})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Payment Frequency</label>
+                  <select 
+                    required 
+                    value={freqForm.frequency} 
+                    onChange={(e) => setFreqForm({...freqForm, frequency: e.target.value})}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  >
+                    <option value="Quarterly">Quarterly</option>
+                    <option value="Monthly">Monthly</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn" style={{ flex: 1 }}>Save Frequency</button>
+                <button type="button" className="btn" style={{ flex: 1, background: '#666' }} onClick={() => setShowFreqModal(false)}>Cancel</button>
               </div>
             </form>
           </div>
