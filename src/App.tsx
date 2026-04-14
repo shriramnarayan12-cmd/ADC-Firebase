@@ -182,6 +182,7 @@ export default function App() {
   const [batchFeeForm, setBatchFeeForm] = useState({ batch_name: "", base_fee: "" });
   const [showFreqModal, setShowFreqModal] = useState(false);
   const [freqForm, setFreqForm] = useState({ batch_name: "", reg_no: "", frequency: "Quarterly" });
+  const [allPayments, setAllPayments] = useState<any[]>([]);
   const [evalState, setEvalState] = useState<Record<string, string>>({
     e1: '8', e2: '8', e3: '8', e4: '8', e5: '8', e6: '8', e7: '8', e8: '8', e9: '8', e10: '8', e11: '8', e12: '8', e13: '8',
     feedback: ''
@@ -225,8 +226,6 @@ export default function App() {
   useEffect(() => {
     if (activeView === 'attendance-view') {
         renderAttendance();
-    } else if (activeView === 'payment-view') {
-        renderPaymentStat();
     }
   }, [activeView, attendanceDate, currentBatchName]);
 
@@ -270,6 +269,24 @@ export default function App() {
     }
     setAnalyticsResults(null);
   }, [activeView, currentBatchName, currentData, isLoggedIn]);
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (!currentBatchName || !isLoggedIn) return;
+      try {
+        const q = query(collection(db, 'payments'), where('batch_name', '==', currentBatchName));
+        const snapshot = await getDocs(q);
+        const payments: any[] = [];
+        snapshot.forEach(doc => {
+          payments.push({ id: doc.id, ...doc.data() });
+        });
+        setAllPayments(payments);
+      } catch (e) {
+        handleFirestoreError(e, OperationType.LIST, 'payments');
+      }
+    };
+    fetchPayments();
+  }, [currentBatchName, isLoggedIn]);
 
   const toggleSidebar = () => {
     setSidebarHidden(!sidebarHidden);
@@ -869,42 +886,7 @@ export default function App() {
     }
   };
 
-  const renderPaymentStat = async () => {
-    const tbody = document.getElementById('payment-body');
-    const thead = document.querySelector('#payment-view thead tr');
-    if (!tbody || !thead) return;
-
-    tbody.innerHTML = '<tr><td colspan="10">🔄 Loading...</td></tr>';
-
-    try {
-        const res = { headers: [], students: [] };
-        const headers = res.headers;
-        const data = res.students;
-
-        if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10">No data found</td></tr>';
-            return;
-        }
-
-        thead.innerHTML = headers.map((h: string, i: number) => {
-            if (i === 0) return `<th style="position:sticky; left:0; z-index:40; background:#f9f9f9;">${h}</th>`;
-            return `<th>${h}</th>`;
-        }).join('');
-
-        tbody.innerHTML = data.map((row: any) => `
-            <tr>
-                ${headers.map((h: string, i: number) => {
-                    const value = row[h] || "-";
-                    const color = value.toString().toLowerCase().includes("paid") ? "green" : (value.toString().toLowerCase().includes("due") ? "red" : "#333");
-                    if (i === 0) return `<td style="position:sticky; left:0; background:white; z-index:10; font-weight:bold;">${value}</td>`;
-                    return `<td style="color:${color}">${value}</td>`;
-                }).join('')}
-            </tr>
-        `).join('');
-    } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="10" style="color:red;">Error loading data</td></tr>';
-    }
-  };
+  
 
   const showMonthlyHistory = async () => {
     if (!isLoggedIn || !auth.currentUser) return;
@@ -1044,6 +1026,15 @@ export default function App() {
 
   const headers = columns.map(c => c.label);
   const nameKey = 'name';
+
+  const quarters = ["Q1 (June/Jul/Aug)", "Q2 (Sep/Oct/Nov)", "Q3 (Dec/Jan/Feb)", "Q4 (Mar/Apr/May)"];
+
+  const renderBadge = (type: string, text: string = "", txnId: string = "") => {
+    if (type === "PAID") return <span className="text-green-600 font-bold cursor-help" title={"TXN: " + txnId}>✅ {text}</span>;
+    if (type === "PENDING") return <span className="text-red-500 font-semibold">❌ PENDING</span>;
+    if (type === "NA") return <span className="text-gray-400 font-bold">-</span>;
+    return null;
+  };
 
   return (
     <div>
@@ -1411,21 +1402,78 @@ export default function App() {
             <div className="table-container">
               <table className="styled-table">
                 <thead>
-                  <tr></tr>
+                  <tr>
+                    <th>Name</th>
+                    <th>Batch Name</th>
+                    <th>Reg #</th>
+                    <th>Q1 (June/Jul/Aug)</th>
+                    <th>Q2 (Sep/Oct/Nov)</th>
+                    <th>Q3 (Dec/Jan/Feb)</th>
+                    <th>Q4 (Mar/Apr/May)</th>
+                    <th>Monthly</th>
+                  </tr>
                 </thead>
                 <tbody id="payment-body">
                   {filteredData.length > 0 ? (
-                    filteredData.map((row, idx) => (
+                    filteredData.map((row, idx) => {
+                      // 1. Clean the registration number to kill invisible spaces
+                      const studentReg = row.reg_no ? row.reg_no.trim().toLowerCase() : "";
+                      const isMonthly = row.payment_frequency === "Monthly";
+                      const isQuarterly = row.payment_frequency === "Quarterly";
+
+                      // 2. Get all payments for this specific student and clean the text
+                      const studentPayments = allPayments.filter(p => p.reg_no?.trim().toLowerCase() === studentReg);
+
+                      // 3. Hardcoded, bulletproof exact matching for Quarters
+                      const q1Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "q1");
+                      const q2Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "q2");
+                      const q3Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "q3");
+                      const q4Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "q4");
+
+                      // 4. Find the latest Monthly payment
+                      const latestMonthly = studentPayments.length > 0 
+                        ? [...studentPayments].sort((a, b) => {
+                            const dateA = a.payment_date ? new Date(a.payment_date).getTime() : 0;
+                            const dateB = b.payment_date ? new Date(b.payment_date).getTime() : 0;
+                            return dateB - dateA;
+                          })[0]
+                        : null;
+
+                      return (
                       <tr key={idx}>
                         <td>{row.name}</td>
+                        <td>{row.new_batch || row.batch_name}</td>
                         <td>{row.reg_no}</td>
-                        <td>{row.contact_num || row.phone}</td>
-                        <td>{row.email}</td>
-                        <td>{row.remarks || '-'}</td>
+                        
+                        {/* Q1 Column */}
+                        <td>
+                          {isMonthly ? renderBadge("NA") : (q1Receipt ? renderBadge("PAID", "PAID", q1Receipt.transaction_id) : renderBadge("PENDING"))}
+                        </td>
+                        
+                        {/* Q2 Column */}
+                        <td>
+                          {isMonthly ? renderBadge("NA") : (q2Receipt ? renderBadge("PAID", "PAID", q2Receipt.transaction_id) : renderBadge("PENDING"))}
+                        </td>
+                        
+                        {/* Q3 Column */}
+                        <td>
+                          {isMonthly ? renderBadge("NA") : (q3Receipt ? renderBadge("PAID", "PAID", q3Receipt.transaction_id) : renderBadge("PENDING"))}
+                        </td>
+                        
+                        {/* Q4 Column */}
+                        <td>
+                          {isMonthly ? renderBadge("NA") : (q4Receipt ? renderBadge("PAID", "PAID", q4Receipt.transaction_id) : renderBadge("PENDING"))}
+                        </td>
+                        
+                        {/* Monthly Column */}
+                        <td>
+                          {isQuarterly ? renderBadge("NA") : (latestMonthly ? renderBadge("PAID", "PAID: " + latestMonthly.period_paid, latestMonthly.transaction_id) : renderBadge("PENDING"))}
+                        </td>
                       </tr>
-                    ))
+                      );
+                    })
                   ) : (
-                    <tr><td colSpan={5} style={{ textAlign: 'center' }}>No data for selected batch</td></tr>
+                    <tr><td colSpan={8} style={{ textAlign: 'center' }}>No data for selected batch</td></tr>
                   )}
                 </tbody>
               </table>
