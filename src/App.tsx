@@ -115,7 +115,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
   const [accessKey, setAccessKey] = useState("");
-
+  const [paymentExportMonth, setPaymentExportMonth] = useState(new Date().toISOString().substring(0, 7));
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -1036,6 +1036,53 @@ export default function App() {
     return null;
   };
 
+  // --- EXPORT CALENDAR MONTH PAYMENTS TO EXCEL ---
+  const handleExportPaymentsByMonth = async () => {
+    if (!paymentExportMonth) return;
+    
+    try {
+      const startOfMonth = `${paymentExportMonth}-01T00:00:00.000Z`;
+      const endOfMonth = `${paymentExportMonth}-31T23:59:59.999Z`;
+
+      const q = query(
+        collection(db, 'payments'),
+        where('payment_date', '>=', startOfMonth),
+        where('payment_date', '<=', endOfMonth)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const paymentsData: any[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        paymentsData.push({
+          "Payment Date": new Date(data.payment_date).toLocaleDateString(),
+          "Transaction ID": data.transaction_id,
+          "Student Name": data.student_name,
+          "Reg No": data.reg_no,
+          "Batch Name": data.batch_name,
+          "Period Paid": data.period_paid,
+          "Fee Plan": data.payment_frequency,
+          "Amount Paid": data.amount_paid
+        });
+      });
+
+      if (paymentsData.length === 0) {
+        alert(`No payments found in the database for ${paymentExportMonth}.`);
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(paymentsData);
+      XLSX.utils.book_append_sheet(wb, ws, "Bank Reconciliation");
+      XLSX.writeFile(wb, `ADC_Bank_Report_${paymentExportMonth}.xlsx`);
+      
+    } catch (error) {
+      console.error("Error exporting monthly payments: ", error);
+      alert("Failed to export data to Excel.");
+    }
+  };
+
   return (
     <div>
       {!isLoggedIn ? (
@@ -1392,6 +1439,27 @@ export default function App() {
                 Logout
               </button>
             </div>
+
+            {/* Bank Reconciliation Export Section */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '30px', padding: '20px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+              <div>
+                <h3 style={{ margin: '0 0 5px 0', fontSize: '1rem', color: '#2c3e50' }}>Bank Reconciliation Export</h3>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#666' }}>Download all payments made across all batches for a specific calendar month.</p>
+              </div>
+              
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <input 
+                  type="month" 
+                  value={paymentExportMonth} 
+                  onChange={(e) => setPaymentExportMonth(e.target.value)} 
+                  style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ccc', outline: 'none' }}
+                />
+                <button className="btn" style={{ background: '#2e7d32', margin: 0 }} onClick={handleExportPaymentsByMonth}>
+                  📊 Download Excel
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
 
