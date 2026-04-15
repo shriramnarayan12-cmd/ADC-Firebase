@@ -1474,7 +1474,7 @@ export default function App() {
                     <th>Name</th>
                     <th>Batch Name</th>
                     <th>Reg #</th>
-                    <th>Q1 (June/Jul/Aug)</th>
+                    <th>Q1 (Jun/Jul/Aug)</th>
                     <th>Q2 (Sep/Oct/Nov)</th>
                     <th>Q3 (Dec/Jan/Feb)</th>
                     <th>Q4 (Mar/Apr/May)</th>
