@@ -1474,10 +1474,10 @@ export default function App() {
                     <th>Name</th>
                     <th>Batch Name</th>
                     <th>Reg #</th>
-                    <th>Q1 (June/Jul/Aug)</th>
-                    <th>Q2 (Sep/Oct/Nov)</th>
-                    <th>Q3 (Dec/Jan/Feb)</th>
-                    <th>Q4 (Mar/Apr/May)</th>
+                    <th>June/Jul/Aug</th>
+                    <th>Sep/Oct/Nov</th>
+                    <th>Dec/Jan/Feb</th>
+                    <th>March</th>
                     <th>Monthly</th>
                   </tr>
                 </thead>
@@ -1493,11 +1493,10 @@ export default function App() {
                       const studentPayments = allPayments.filter(p => p.reg_no?.trim().toLowerCase() === studentReg);
 
                       // 3. Hardcoded, bulletproof exact matching for Quarters
-                      const q1Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "q1");
-                      const q2Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "q2");
-                      const q3Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "q3");
-                      const q4Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "q4");
-
+const q1Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "june/jul/aug");
+const q2Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "sep/oct/nov");
+const q3Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "dec/jan/feb");
+const q4Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() === "march");
                       // 4. Find the latest Monthly payment
                       const latestMonthly = studentPayments.length > 0 
                         ? [...studentPayments].sort((a, b) => {
