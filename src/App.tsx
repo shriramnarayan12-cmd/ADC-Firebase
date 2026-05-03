@@ -129,8 +129,16 @@ export default function App() {
 
  const handleLogin = async (e: FormEvent) => {
   e.preventDefault();
-  // Now it checks if the password is the faculty one OR the admin one
-  if (accessKey === "adc_password_2026" || accessKey === "adc_admin_123") {
+  
+  // Clean up the inputs just in case there are accidental spaces
+  const enteredId = username.trim();
+  const enteredKey = accessKey.trim();
+
+  // Define the strict combinations
+  const isAdmin = enteredId === "admin" && enteredKey === "adc_admin_123";
+  const isFaculty = enteredId === "faculty" && enteredKey === "adc_password_2026";
+
+  if (isAdmin || isFaculty) {
     try {
       await signInAnonymously(auth);
       setIsLoggedIn(true);
