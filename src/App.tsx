@@ -695,11 +695,9 @@ export default function App() {
         ["Registration No", selectedStudent.reg_no || selectedStudent.Reg_No || "-"],
         ["Contact Number", selectedStudent.contact_num || selectedStudent.phone || selectedStudent['Contact Num'] || "-"],
         ["Email Address", selectedStudent.email || selectedStudent['Email Address'] || "-"],
-        ["Batch Name", selectedStudent.batch_name || selectedStudent['Batch Name'] || "-"],
         ["Old Batch", selectedStudent.old_batch || selectedStudent['Old Batch'] || "-"],
         ["New Batch", selectedStudent.new_batch || selectedStudent['New Batch'] || "-"],
         ["Year of Joining", selectedStudent.year_of_joining || selectedStudent['Year of Joining'] || "-"],
-        ["Remarks", selectedStudent.remarks || selectedStudent.Remarks || "-"],
         ["Attendance", attendanceDisplay || "N/A"],
         ["Overall Score", `${totalScore} / ${maxScore}`]
     ];
