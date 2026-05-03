@@ -1123,17 +1123,26 @@ export default function App() {
           <button id="menu-toggle" onClick={toggleSidebar}>☰</button>
 
       <nav id="sidebar">
-        <div className="nav-header">
-          <h2 style={{ margin: 0, color: 'var(--gold)', fontSize: '1.2rem' }}>ADC FACULTY</h2>
-          <p style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '5px' }}>ADMIN SUITE</p>
-        </div>
-        <div className="nav-links">
-          <div className={`nav-item ${activeView === 'student-view' ? 'active' : ''}`} onClick={() => navAction('student-view')}><span>👤</span> Students</div>
-          <div className={`nav-item ${activeView === 'attendance-view' ? 'active' : ''}`} onClick={() => navAction('attendance-view')}><span>📅</span> Attendance</div>
-          <div className={`nav-item ${activeView === 'payment-view' ? 'active' : ''}`} onClick={() => navAction('payment-view')}><span>💳</span> Payment Stat</div>
-          <div className={`nav-item ${activeView === 'admin-view' ? 'active' : ''}`} id="admin-nav-btn" onClick={() => navAction('admin-view')}><span>⚙</span> Admin</div>
-        </div>
-      </nav>
+  <div className="nav-header">
+    <h2 style={{ margin: 0, color: 'var(--gold)', fontSize: '1.2rem' }}>ADC FACULTY</h2>
+    <p style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '5px' }}>ADMIN SUITE</p>
+  </div>
+  <div className="nav-links">
+    <div className={`nav-item ${activeView === 'student-view' ? 'active' : ''}`} onClick={() => navAction('student-view')}><span>👤</span> Students</div>
+    <div className={`nav-item ${activeView === 'attendance-view' ? 'active' : ''}`} onClick={() => navAction('attendance-view')}><span>📅</span> Attendance</div>
+    <div className={`nav-item ${activeView === 'payment-view' ? 'active' : ''}`} onClick={() => navAction('payment-view')}><span>💳</span> Payment Stat</div>
+    
+    {/* Logout Button placed exactly below Payment Stat for everyone */}
+    <div className="nav-item" onClick={handleLogout} style={{ marginTop: '20px', color: '#c62828' }}>
+      <span>🚪</span> Logout
+    </div>
+
+    {/* Admin button only shows for the Admin */}
+    {accessKey === "adc_admin_123" && (
+      <div className={`nav-item ${activeView === 'admin-view' ? 'active' : ''}`} id="admin-nav-btn" onClick={() => navAction('admin-view')}><span>⚙</span> Admin</div>
+    )}
+  </div>
+</nav>
 
       <main>
         <div id="student-view" className={`view ${activeView === 'student-view' ? 'active' : ''}`}>
@@ -1426,18 +1435,6 @@ export default function App() {
               <button className="btn" onClick={() => { setIsEditMode(false); setShowAddModal(true); }}>➕ Add New Student</button>
               <button className="btn" onClick={() => setShowBatchFeeModal(true)}>💰 Set Batch Base Fee</button>
               <button className="btn" onClick={() => setShowFreqModal(true)}>💳 Set Student Frequency</button>
-              <button 
-                className="btn" 
-                style={{ 
-                  backgroundColor: 'transparent', 
-                  color: '#800000', 
-                  border: '1px solid #800000',
-                  marginLeft: 'auto'
-                }} 
-                onClick={handleLogout}
-              >
-                Logout
-              </button>
             </div>
 
             {/* Bank Reconciliation Export Section */}
