@@ -127,20 +127,21 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const handleLogin = async (e: FormEvent) => {
-    e.preventDefault();
-    if (accessKey === "adc_password_2026") {
-      try {
-        await signInAnonymously(auth);
-        setIsLoggedIn(true);
-      } catch (err) {
-        console.error("Login error:", err);
-        alert("Authentication failed.");
-      }
-    } else {
-      alert("Invalid Credentials");
+ const handleLogin = async (e: FormEvent) => {
+  e.preventDefault();
+  // Now it checks if the password is the faculty one OR the admin one
+  if (accessKey === "adc_password_2026" || accessKey === "adc_admin_123") {
+    try {
+      await signInAnonymously(auth);
+      setIsLoggedIn(true);
+    } catch (err) {
+      console.error("Login error:", err);
+      alert("Authentication failed.");
     }
-  };
+  } else {
+    alert("Invalid Credentials");
+  }
+};
 
   const handleLogout = async () => {
     try {
