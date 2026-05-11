@@ -188,6 +188,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
   const [accessKey, setAccessKey] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [paymentExportMonth, setPaymentExportMonth] = useState(new Date().toISOString().substring(0, 7));
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -1185,14 +1186,34 @@ export default function App() {
               </div>
               <div style={{ marginBottom: '20px', textAlign: 'left' }}>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 700 }}>Access Key</label>
-                <input 
-                  type="password" 
-                  value={accessKey} 
-                  onChange={(e) => setAccessKey(e.target.value)} 
-                  placeholder="Enter access key"
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
-                  required
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={accessKey}
+                    onChange={(e) => setAccessKey(e.target.value)}
+                    placeholder="Enter access key"
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', paddingRight: '60px' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      color: '#800000',
+                      padding: '5px'
+                    }}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
               </div>
               <button type="submit" className="btn" style={{ width: '100%', background: '#800000', color: 'white', padding: '12px', fontSize: '1rem' }}>
                 Authorize Entry
