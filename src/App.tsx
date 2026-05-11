@@ -182,6 +182,8 @@ export default function App() {
   const [allBatchAttendance, setAllBatchAttendance] = useState<any[]>([]);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [fromDate, setFromDate] = useState("");
+  const [showRemarksModal, setShowRemarksModal] = useState(false);
+  const [editingRemarkText, setEditingRemarkText] = useState("");
   const [toDate, setToDate] = useState("");
   const [analyticsResults, setAnalyticsResults] = useState<any>(null);
   const [isFetchingAttendance, setIsFetchingAttendance] = useState(false);
@@ -547,6 +549,37 @@ export default function App() {
     } finally {
         setIsSyncing(false);
     }
+  };
+
+  const handleSaveRemark = async () => {
+    if (!selectedStudent) return;
+    try {
+      setNotification({ message: 'Saving remark...', type: 'success' });
+      // Update the database safely
+      await setDoc(doc(db, 'students', String(selectedStudent.reg_no)), { 
+        remarks: editingRemarkText 
+      }, { merge: true });
+      
+      // Update the screen instantly
+      const updatedData = currentData.map(s => 
+        String(s.reg_no) === String(selectedStudent.reg_no) 
+          ? { ...s, remarks: editingRemarkText } 
+          : s
+      );
+      setCurrentData(updatedData);
+      
+      setShowRemarksModal(false);
+      setNotification({ message: 'Remark updated successfully!', type: 'success' });
+    } catch (error) {
+      console.error("Error saving remark:", error);
+      setNotification({ message: 'Failed to update remark.', type: 'error' });
+    }
+  };
+
+  const openRemarksModal = (student: any) => {
+    setSelectedStudent(student);
+    setEditingRemarkText(student.remarks || "");
+    setShowRemarksModal(true);
   };
 
   const handleChangeBatchPrompt = async () => {
@@ -1294,7 +1327,24 @@ export default function App() {
                             const textColor = percent >= 80 ? '#2e7d32' : (percent >= 50 ? '#ef6c00' : '#c62828');
                             return (
                                 <tr key={idx}>
-                                    {columns.map(col => <td key={col.key}>{row[col.key] || '-'}</td>)}
+                                    {columns.map(col => (
+  <td key={col.key}>
+    {col.key === 'remarks' ? (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+        <span>{row[col.key] || '-'}</span>
+        <button 
+          className="btn btn-mini" 
+          style={{ background: '#f0f0f0', color: '#333', padding: '4px 8px', fontSize: '0.75rem', border: '1px solid #ccc' }}
+          onClick={() => openRemarksModal(row)}
+        >
+          ✏️ Update
+        </button>
+      </div>
+    ) : (
+      row[col.key] || '-'
+    )}
+  </td>
+))}
                                     <td>
                                         <span className="att-badge" style={{ background: badgeColor, color: textColor, padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
                                             {attendedClasses}/{totalClasses} ({percent}%)
@@ -1811,6 +1861,42 @@ const q4Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() 
         </div>
       )}
         </>
+      )}
+      {/* UPDATE REMARKS MODAL */}
+      {showRemarksModal && selectedStudent && (
+        <div className="modal-overlay" style={{ zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card" style={{ width: '90%', maxWidth: '500px', background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginTop: 0, borderBottom: '2px solid #800000', paddingBottom: '10px' }}>
+              Update Remarks: {selectedStudent.student_name}
+            </h3>
+            
+            <label style={{ display: 'block', marginTop: '15px', marginBottom: '5px', fontWeight: 'bold' }}>Current / New Remark:</label>
+            <textarea 
+              rows={5}
+              style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '1rem', resize: 'vertical' }}
+              value={editingRemarkText}
+              onChange={(e) => setEditingRemarkText(e.target.value)}
+              placeholder="Type your remark here..."
+            />
+            
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button 
+                className="btn" 
+                style={{ background: '#f5f5f5', color: '#333', border: '1px solid #ccc' }}
+                onClick={() => setShowRemarksModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn" 
+                style={{ background: '#800000', color: 'white' }}
+                onClick={handleSaveRemark}
+              >
+                💾 Save Remark
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {notification && (
         <div className={`notification ${notification.type}`}>
