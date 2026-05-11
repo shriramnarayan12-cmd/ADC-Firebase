@@ -927,26 +927,13 @@ export default function App() {
       return;
     }
 
-    // Step 3: Reset on Click - Clear previous results
     setAnalyticsResults(null);
     setIsFetchingAttendance(true);
 
     try {
-        // Step 1: Fetch entire history of the selected batch from the database
-        const q = query(
-            collection(db, 'attendance'),
-            where('batch_name', '==', currentBatchName)
-        );
-        const querySnapshot = await getDocs(q);
-        const allRecords: any[] = [];
-        querySnapshot.forEach((doc) => {
-            allRecords.push(doc.data());
-        });
-
-        // Sync with global state
-        setAllBatchAttendance(allRecords);
-
-        const filtered = allRecords.filter(record => {
+        // --- PHASE 3 OPTIMIZATION: ZERO READS ---
+        // We already have the batch attendance in memory, no need to fetch!
+        const filtered = allBatchAttendance.filter(record => {
             const d = record.date;
             return d >= fromDate && d <= toDate;
         });
@@ -957,8 +944,6 @@ export default function App() {
             return;
         }
 
-        // Step 2: Fix the Logic Error
-        // Ensure the counter strictly recognizes these four categories
         const counter: Record<string, number> = { 
             "Regular": 0, 
             "Re-Scheduled": 0, 
@@ -968,13 +953,10 @@ export default function App() {
         let total = 0;
 
         filtered.forEach(record => {
-            // CRITICAL: Fix the "missing type" bug. If empty/undefined, count as "Regular"
             const type = (record.sessionType || "Regular").trim();
-            
             if (counter.hasOwnProperty(type)) {
                 counter[type]++;
             }
-            // totalSessions is the sum of every single record regardless of label
             total++;
         });
 
@@ -1011,7 +993,7 @@ export default function App() {
         
         setAttendanceLocked(true);
         alert("Attendance saved successfully!");
-        fetchBatchAttendance(); // Refresh analytics data
+        fetchBatchAttendance(); 
         if (finalizeBtn) finalizeBtn.innerText = "SESSION FINALIZED";
         const summaryCard = document.getElementById('attendance-summary');
         if (summaryCard) summaryCard.style.display = 'block';
@@ -1022,8 +1004,6 @@ export default function App() {
     }
   };
 
-  
-
   const showMonthlyHistory = async () => {
     if (!isLoggedIn || !auth.currentUser) return;
     if (!attendanceDate || !currentBatchName) return alert("Please select a date to determine the month.");
@@ -1033,22 +1013,10 @@ export default function App() {
     if (!panel || !content) return;
 
     panel.style.display = 'block';
-    content.innerHTML = "<p style='text-align:center;'>Fetching from cloud... ☁️</p>";
 
     try {
-        const q = query(
-            collection(db, 'attendance'),
-            where('batch_name', '==', currentBatchName)
-        );
-        const querySnapshot = await getDocs(q);
-        const monthlyRecords: any[] = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.date && data.date.startsWith(selectedMonth)) {
-                monthlyRecords.push(data);
-            }
-        });
-        
+        // --- PHASE 3 OPTIMIZATION: ZERO READS ---
+        const monthlyRecords = allBatchAttendance.filter(record => record.date && record.date.startsWith(selectedMonth));
         monthlyRecords.sort((a, b) => b.date.localeCompare(a.date));
 
         if (monthlyRecords.length === 0) {
@@ -1067,7 +1035,7 @@ export default function App() {
         `).join('');
     } catch (err) {
         console.error("History fetch error:", err);
-        content.innerHTML = `<p style="color:red; padding: 10px;">⚠️ Error reaching the cloud.</p>`;
+        content.innerHTML = `<p style="color:red; padding: 10px;">⚠️ Error loading history.</p>`;
     }
   };
 
@@ -1077,14 +1045,9 @@ export default function App() {
     const selectedMonth = attendanceDate.substring(0, 7);
 
     try {
-        const q = query(
-            collection(db, 'attendance'),
-            where('batch_name', '==', currentBatchName)
-        );
-        const querySnapshot = await getDocs(q);
+        // --- PHASE 3 OPTIMIZATION: ZERO READS ---
         const allData: Record<string, any> = {};
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
+        allBatchAttendance.forEach((data) => {
             if (data.date && data.date.startsWith(selectedMonth)) {
                 allData[data.date] = data;
             }
@@ -1119,7 +1082,6 @@ export default function App() {
         alert("Export failed.");
     }
   };
-
   const resetSystem = () => {
     if(confirm("Clear data?")) { localStorage.clear(); window.location.reload(); }
   };
