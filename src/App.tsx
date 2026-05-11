@@ -570,12 +570,22 @@ export default function App() {
       
       setShowRemarksModal(false);
       setNotification({ message: 'Remark updated successfully!', type: 'success' });
+      
+      // NEW: Hide the success message after 3 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+      
     } catch (error) {
       console.error("Error saving remark:", error);
       setNotification({ message: 'Failed to update remark.', type: 'error' });
+      
+      // NEW: Hide the error message after 3 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 3000);
     }
   };
-
   const openRemarksModal = (student: any) => {
     setSelectedStudent(student);
     setEditingRemarkText(student.remarks || "");
