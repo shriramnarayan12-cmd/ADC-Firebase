@@ -1331,7 +1331,15 @@ export default function App() {
   <td key={col.key}>
     {col.key === 'remarks' ? (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
-        <span>{row[col.key] || '-'}</span>
+        <span style={{ 
+          display: 'block', 
+          maxWidth: '250px', /* This prevents the column from getting too wide */
+          whiteSpace: 'pre-wrap', /* This preserves 'Enter' key line breaks and wraps text */
+          wordWrap: 'break-word', /* This forces long words to break instead of stretching */
+          lineHeight: '1.4' /* Makes it easier to read */
+        }}>
+          {row[col.key] || '-'}
+        </span>
         <button 
           className="btn btn-mini" 
           style={{ background: '#f0f0f0', color: '#333', padding: '4px 8px', fontSize: '0.75rem', border: '1px solid #ccc' }}
