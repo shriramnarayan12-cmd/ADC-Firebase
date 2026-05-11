@@ -441,19 +441,20 @@ export default function App() {
         alert(`Student ${isEditMode ? 'updated' : 'added'} successfully!`);
         setShowAddModal(false);
         setIsEditMode(false);
-        setFormData({
-            sl_no: "",
-            name: "",
-            reg_no: "",
-            old_batch: "",
-            new_batch: "",
-            contact_num: "",
-            email: "",
-            year_of_joining: "",
-            remarks: "",
-            batch_name: ""
+        
+        // --- NEW OPTIMIZATION: Update screen instantly for FREE ---
+        setCurrentData(prev => {
+            if (isEditMode) return prev.map(s => String(s.reg_no) === String(formData.reg_no) ? formData : s);
+            return [...prev, formData];
         });
-        await loadBatchData();
+        if (!batches.includes(formData.batch_name)) {
+            setBatches(prev => [...prev, formData.batch_name].sort());
+        }
+        // ----------------------------------------------------------
+
+        setFormData({
+            sl_no: "", name: "", reg_no: "", old_batch: "", new_batch: "", contact_num: "", email: "", year_of_joining: "", remarks: "", batch_name: ""
+        });
     } catch (err) {
         showNotification("Error saving data. Please check connection.", "error");
         handleFirestoreError(err, OperationType.WRITE, path);
@@ -488,8 +489,11 @@ export default function App() {
       await setDoc(doc(db, 'students', freqForm.reg_no), { payment_frequency: freqForm.frequency }, { merge: true });
       alert("Student frequency set successfully!");
       setShowFreqModal(false);
+      
+      // --- NEW OPTIMIZATION: Update screen instantly for FREE ---
+      setCurrentData(prev => prev.map(s => String(s.reg_no) === String(freqForm.reg_no) ? { ...s, payment_frequency: freqForm.frequency } : s));
+      
       setFreqForm({ batch_name: "", reg_no: "", frequency: "Quarterly" });
-      await loadBatchData();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `students/${freqForm.reg_no}`);
     }
@@ -542,7 +546,10 @@ export default function App() {
     try {
         await deleteDoc(doc(db, 'students', String(regNo)));
         alert("Student deleted successfully!");
-        await loadBatchData();
+        
+        // --- NEW OPTIMIZATION: Remove from screen instantly for FREE ---
+        setCurrentData(prev => prev.filter(s => String(s.reg_no) !== String(regNo)));
+        
     } catch (err) {
         console.error("Error deleting student:", err);
         alert("Delete failed.");
@@ -555,12 +562,10 @@ export default function App() {
     if (!selectedStudent) return;
     try {
       setNotification({ message: 'Saving remark...', type: 'success' });
-      // Update the database safely
       await setDoc(doc(db, 'students', String(selectedStudent.reg_no)), { 
         remarks: editingRemarkText 
       }, { merge: true });
       
-      // Update the screen instantly
       const updatedData = currentData.map(s => 
         String(s.reg_no) === String(selectedStudent.reg_no) 
           ? { ...s, remarks: editingRemarkText } 
@@ -571,7 +576,6 @@ export default function App() {
       setShowRemarksModal(false);
       setNotification({ message: 'Remark updated successfully!', type: 'success' });
       
-      // NEW: Hide the success message after 3 seconds
       setTimeout(() => {
         setNotification(null);
       }, 3000);
@@ -580,12 +584,12 @@ export default function App() {
       console.error("Error saving remark:", error);
       setNotification({ message: 'Failed to update remark.', type: 'error' });
       
-      // NEW: Hide the error message after 3 seconds
       setTimeout(() => {
         setNotification(null);
       }, 3000);
     }
   };
+
   const openRemarksModal = (student: any) => {
     setSelectedStudent(student);
     setEditingRemarkText(student.remarks || "");
@@ -609,7 +613,13 @@ export default function App() {
             const data = studentDoc.data();
             await setDoc(doc(db, 'students', String(regNo)), { ...data, batch_name: newBatch });
             alert("Batch updated successfully!");
-            await loadBatchData();
+            
+            // --- NEW OPTIMIZATION: Update screen instantly for FREE ---
+            setCurrentData(prev => prev.map(s => String(s.reg_no) === String(regNo) ? { ...s, batch_name: newBatch } : s));
+            if (!batches.includes(newBatch)) {
+                setBatches(prev => [...prev, newBatch].sort());
+            }
+            
         } else {
             alert("Student not found!");
         }
