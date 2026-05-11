@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
@@ -19,4 +19,16 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-console.log('Firebase Handshake Successful!');
+// --- NEW: PHASE 1 OFFLINE MEMORY ---
+// This tells the browser to save a local copy of the database.
+enableIndexedDbPersistence(db)
+  .catch((err) => {
+    if (err.code == 'failed-precondition') {
+      console.log('Multiple tabs open, memory only works in one tab at a time.');
+    } else if (err.code == 'unimplemented') {
+      console.log('This browser does not support offline memory.');
+    }
+  });
+// -----------------------------------
+
+console.log('Firebase Handshake & Memory Successful!');
