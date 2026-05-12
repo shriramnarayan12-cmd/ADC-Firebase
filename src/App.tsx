@@ -807,18 +807,46 @@ export default function App() {
     const studentName = selectedStudent.name;
     const stats = liveStats[studentName] || { present: 0, total: 0, percent: 0 };
     const attendanceDisplay = `${stats.present}/${stats.total} (${stats.percent}%)`;
+    const studentBatch = selectedStudent.new_batch || selectedStudent.batch_name || selectedStudent['New Batch'] || "";
 
-    const evalCriteria = [
+    // 1. Define the base criteria
+    const allCriteria = [
         ["Angika Coordination", "e1"], ["Angika Clarity", "e2"], ["Angika Energy", "e3"], ["Angika Style", "e4"],
         ["Vachika Jatis", "e5"], ["Vachika Shlokas", "e6"], ["Aharya Dress", "e7"],
         ["Sathvika Ananda", "e8"], ["Sathvika Abhinaya", "e9"], ["Sathvika Music", "e10"],
         ["Communication", "e11"], ["Punctuality", "e12"], ["Attention", "e13"]
     ];
+
+    // 2. Identify the batch type
+    const isBtym = studentBatch.toUpperCase().startsWith("BTYM");
+    const kidsBatches = [
+        "BTYM Wed - Fri 5pm Indu", 
+        "BTYM Tue - Fri 6pm Manasa", 
+        "BTYM Thu - Mon 6pm Meera", 
+        "BTYM Thu - Mon 5pm Medha"
+    ];
+    const isKidsBatch = kidsBatches.includes(studentBatch);
+
+    // 3. Filter criteria specifically for the PDF based on batch rules
+    const filteredCriteria = allCriteria.filter(item => {
+        const key = item[1];
+        if (isBtym) {
+            if (isKidsBatch) {
+                // Remove e4, e6, e8, e9, e10 for BTYM Kids
+                if (["e4", "e6", "e8", "e9", "e10"].includes(key)) return false;
+            } else {
+                // Remove e5 for BTYM Regular
+                if (key === "e5") return false;
+            }
+        }
+        return true; // KTK keeps everything
+    });
     
+    // 4. Calculate dynamic score using ONLY the filtered criteria
     let totalScore = 0;
     let maxScore = 0;
 
-    evalCriteria.forEach(item => {
+    filteredCriteria.forEach(item => {
         const val = evalState[item[1]];
         if (!isNaN(Number(val)) && val !== "AB" && val !== "NA") {
             totalScore += Number(val);
@@ -861,10 +889,10 @@ export default function App() {
         ["Contact Number", selectedStudent.contact_num || selectedStudent.phone || selectedStudent['Contact Num'] || "-"],
         ["Email Address", selectedStudent.email || selectedStudent['Email Address'] || "-"],
         ["Old Batch", selectedStudent.old_batch || selectedStudent['Old Batch'] || "-"],
-        ["New Batch", selectedStudent.new_batch || selectedStudent['New Batch'] || "-"],
+        ["New Batch", studentBatch || "-"],
         ["Year of Joining", selectedStudent.year_of_joining || selectedStudent['Year of Joining'] || "-"],
         ["Attendance", attendanceDisplay || "N/A"],
-        ["Overall Score", `${totalScore} / ${maxScore}`]
+        ["Overall Score", `${totalScore} / ${maxScore}`] // Score is now dynamic
     ];
 
     (doc as any).autoTable({
@@ -880,9 +908,8 @@ export default function App() {
     doc.text("TECHNICAL PERFORMANCE ASSESSMENT", 14, currentY);
     doc.line(14, currentY + 2, 196, currentY + 2);
 
-    const studentBatch = selectedStudent.new_batch || selectedStudent.batch_name || selectedStudent['New Batch'] || "";
-    
-    const evalData = evalCriteria.map(item => {
+    // 5. Generate PDF rows from the filtered criteria
+    const evalData = filteredCriteria.map(item => {
         const score = evalState[item[1]];
         return [item[0].toUpperCase(), score, getExcelText(item[1], score, studentBatch)];
     });
