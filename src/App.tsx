@@ -76,21 +76,36 @@ const KTK_TEXT: Record<string, Record<number, string>> = {
     e13: { 8: "Very Good : Keep the keen observation on details & work on going deeper.", 5: "Good : Observe more & work on applying details to dance", 1: "Could Improve : Requires much more observation & work on applying the corrections." }
 };
 
-const BTYM_TEXT: Record<string, Record<number, string>> = {
+const BTYM_KIDS_TEXT: Record<string, Record<number, string>> = {
+    e1: { 8: "Very good : Work on more details with the eyes, eyebrows and finger tips. Practice everyday for an hour.", 5: "Good : Work on repetitions and every time observe keenly how the relationship builds between different parts of the body. Consciously give it a wholesome treatment. Practice one hour everyday.", 1: "Could Improve : Practice each movement five times before you move to next and keep it going till you complete the lesson. Practice everyday for 1- 2 hours" },
+    e2: { 8: "Very good : Keep practicing to maintain because without practice quality can drop. Work on all the Adavus and compositions learnt.", 5: "Good : Work on finishing each action fully to get to next level, repeat practice helps in better clarity.", 1: "Could Improve : Keep conscious awareness of movements & details it requires, repeat all movements / segments five times. Practice everyday for 1-2 hrs." },
+    e3: { 8: "Very Good : Give attention to Mandalam, Natyarambe & footwork. 6 hours a week of self practice will help maintain stamina.", 5: "Good : Pay attention to developing strength in the ankles, Natyarambe. Work on Mandalam atleast for 20 - 40 secs everyday (Parshvapaada) knees facing side walls.", 1: "Could Improve : Need to develop strength in knees to be strong & consistent. Practice 60 mins a day for 4 days a week. Start with slow speed then once it strengthens increase the speed gradually." },
+    e4: { 8: "NA", 5: "NA", 1: "NA" },
+    e5: { 8: "Very Good : Keep it up! Voice can be heard with more clarity.", 5: "Good : Practice with friends and get more clarity on pronunciation & volume.", 1: "Could Improve : Practice alone & with friends. Voice needs power and get more clarity on pronunciation & volume" },
+    e6: { 8: "NA", 5: "NA", 1: "NA" },
+    e7: { 8: "Very Good : Well managed , keep it up !", 5: "Good : Duppatta/sari needs to be tied properly", 1: "Could Improve: Duppatta need to be tied properly & hair to be braided." },
+    e8: { 8: "NA", 5: "NA", 1: "NA" },
+    e9: { 8: "NA", 5: "NA", 1: "NA" },
+    e10: { 8: "NA", 5: "NA", 1: "NA" },
+    e11: { 8: "Very Good : Keep it up , good you give prior information about attendance . Discussions on lessons / programs with faculty helps in deeper understanding of dance.", 5: "Good : Consistency in communicating attendance will help create better bonding with faculty. Feel free to ask details on lessons & discuss programs observed.", 1: "Could Improve : Feel more free & connected with faculty / institution. Prior information of attendance is essential. Do not hesitate to ask lesson clarification. Clear communication helps in deeper understanding of art & improvement in self." },
+    e12: { 8: "Very Good", 5: "Good", 1: "Could Improve" },
+    e13: { 8: "Very Good : Keep the keen observation on details & work on going deeper.", 5: "Good : Observe more & work on applying details to dance", 1: "Could Improve : Requires much more observation & work on applying the corrections." }
+};
+const BTYM_REGULAR_TEXT: Record<string, Record<number, string>> = {
     e1: { 
-        8: "Very good: Work on more details with eyes, eye brows & finger tips, practice every day for one hour", 
-        5: "Good: Work on repetitions and every time observe keenly how the relationship builds between different parts of the body. Consciously give it a wholesome treatment. Practice one hour every day", 
-        1: "Could Improve: Practice each movement five times before you move to next and keep it going till you complete the lesson, Practice every day for 1- 2 hours" 
+        8: "Very good : Work on more details with the eyes, eyebrows and finger tips. Practice everyday for an hour.", 
+        5: "Good : Work on repetitions and every time observe keenly how the relationship builds between different parts of the body. Consciously give it a wholesome treatment. Practice one hour everyday.", 
+        1: "Could Improve : Practice each movement five times before you move to next and keep it going till you complete the lesson, Practice every day for 1- 2 hours" 
     },
     e2: { 
-        8: "Very good: Keep practising to maintain because without practise quality can drop. Work on all compositions learnt", 
-        5: "Good: Work on finishing each action fully to get to next level, repeat practise helps in better clarity", 
-        1: "Could Improve: Keep conscious awareness of movements & details it requires, repeat all movements / segments five times. Practise every day for 1-2 hrs" 
+        8: "Very good : Keep practicing to maintain because without practice quality can drop. Work on all the Adavus and compositions learnt.", 
+        5: "Good : Work on finishing each action fully to get to next level, repeat practice helps in better clarity.", 
+        1: "Could Improve : Keep conscious awareness of movements & details it requires, repeat all movements / segments five times. Practice every day for 1-2 hrs" 
     },
     e3: { 
         8: "Very Good: Give attention to each movement, footwork and wholesome involvement of the body involving the respective Upangas. 6 hrs a week of self-practice will help maintain stamina", 
-        5: "Good: Pay attention to developing stamina and wholesome involvement of the body with more details given to the Upangas used. Upper body needs to relax", 
-        1: "Could Improve: Need to develop more stamina, work on the memory of movements and consistent practice of the compositions learnt. Practice 60 mins a day for 4 days a week, increase gradually. Observe senior class & put on self those nuances to strengthen. Once lower body becomes strong work on upper body grace" 
+        5: "Good : Pay attention to developing strength in the ankles, Natyarambe, developing stamina and wholesome involvement of the body with more details given to the Upangas used. Upper body needs to relax. Work on Mandalam at least for 20 - 40 secs everyday (Parshvapaada) knees facing side walls.", 
+        1: "Could Improve : Need to develop more stamina, work on the memory of movements and consistent practice of the compositions learnt. Practice 60 mins a day for 4 days a week, increase gradually. Observe senior class & put on self those nuances to strengthen. Once lower body becomes strong work on upper body grace." 
     },
     e4: { 
         8: "Very Good: Keep it up, body postures and aesthetics well maintained. Observe gurus, seniors & extraordinary performers of Bharathanatyam to develop deeper understanding of the style", 
@@ -98,24 +113,24 @@ const BTYM_TEXT: Record<string, Record<number, string>> = {
         1: "Could Improve: Body posture needs to improve and work on the style of each movements/adavus taught in specific (Bharathanatyam/Bharathanrityam) practice slowly in front of mirror, also take help of friends to make observation & correct yourself" 
     },
     e5: { 
-        8: "Very good : 20 mins thrice a week practice will greatly help get to next level in clarity of jatis/shollukattu/bols & develop stamina , say it to Tala.", 
-        5: "Good : Practice repeatedly for 15 mins four times a week to manage breath control & develop strength in voice. Say it with Tala", 
-        1: "Could Improve : Practice repeatedly for 15 -20 mins every day to manage breath control & develop strength in voice. Say it with Tala" 
+        8: "Very Good : Keep it up! Voice can be heard with more clarity. Practice using metronome for jathis.", 
+        5: "Good : Practice with friends and get more clarity on pronunciation & volume. Practice using metronome and tala for jathis", 
+        1: "Could Improve : Practice alone & with friends. Voice needs power and get more clarity on pronunciation & volume. Get the shollu correct, understand the tala and practice with metronome to get the correct speed and rhythm for jathis." 
     },
     e6: { 
-        8: "Very good : Keep it up voice can be heard with more clarity", 
-        5: "Good: Practice with friends, get more clarity on pronunciation & volume", 
-        1: "Could Improve : Practice alone & with friends voice needs power, get more clarity on pronunciation & volume" 
+        8: "NA", 
+        5: "NA", 
+        1: "NA" 
     },
     e7: { 
         8: "Very Good : Well managed , keep it up !", 
-        5: "Good : Duppattas / Saree needs to be tied properly", 
-        1: "Could Improve : Duppattas/Saree need to be tied properly & hair to be braided" 
+        5: "Good : Duppatta/sari needs to be tied properly", 
+        1: "Could Improve: Duppatta need to be tied properly & hair to be braided." 
     },
     e8: { 
         8: "Very Good: Keep it up! It is a pleasure to see you enjoy", 
-        5: "Good: However Ananda is covered by memory issues and tiredness. So train your body through practise, this will give muscle memory & you may easily enjoy", 
-        1: "Could Improve: Remember you dance because you like it, enjoyment can happen if body is fit & flexible, warm up for 15 mins with few stretches, practise repeatedly dance movements & the compositions four to five times a week, it will ease the body & mind then enjoyment will come with less efforts" 
+        5: "Good: However Ananda is covered by memory issues and tiredness. So train your body through practice, this will give muscle memory & you may easily enjoy", 
+        1: "Could Improve: Remember you dance because you like it, enjoyment can happen if body is fit & flexible, warm up for 15 mins with few stretches, practice repeatedly dance movements & the compositions four to five times a week, it will ease the body & mind then enjoyment will come with less efforts" 
     },
     e9: { 
         8: "Very Good : Keep it up , observe maestros for more details on the expressions. Keep practicing the usage of eyes, eyebrows, and other facial muscles to express the emotions. Keep music in your heart and the words in mind and also the nuances of singing & accompanying instruments. Read about the poet to get more insights, expand your knowledge listening to songs that are in the same Raaga.", 
@@ -128,9 +143,9 @@ const BTYM_TEXT: Record<string, Record<number, string>> = {
         1: "Could Improve : Keep practice through singing the song of the dance, listen to the song repeatedly so that you may start enjoying the nuances of the instruments or vocal. Work on developing ability to sing the song of the dance." 
     },
     e11: { 
-        8: "Very Good: Keep it up , good you give prior information about attendance. Discussions on lessons / programs with faculty helps in deeper understanding of dance", 
-        5: "Good: Consistency in communicating attendance will help create better bonding with faculty. Feel free to ask details on lessons & discuss programs observed", 
-        1: "Could Improve: Feel freer & connected with faculty / institution. Prior information of attendance is essential. Do not hesitate to ask lesson clarification. Clear communication helps in deeper understanding of art & improvement in self" 
+        8: "Very Good : Keep it up , good you give prior information about attendance . Discussions on lessons / programs with faculty helps in deeper understanding of dance.", 
+        5: "Good : Consistency in communicating attendance will help create better bonding with faculty. Feel free to ask details on lessons & discuss programs observed.", 
+        1: "Could Improve : Feel more free & connected with faculty / institution. Prior information of attendance is essential. Do not hesitate to ask lesson clarification. Clear communication helps in deeper understanding of art & improvement in self." 
     },
     e12: { 
         8: "Very Good", 
@@ -150,7 +165,30 @@ function getExcelText(id: string, score: string, batchName: string) {
     
     // Check if the batch name starts with "BTYM"
     const isBtym = batchName && batchName.toUpperCase().startsWith("BTYM");
-    const textSource = isBtym ? BTYM_TEXT : KTK_TEXT;
+    
+    // --- YOUR LIST OF KIDS BATCHES GOES HERE ---
+    // Replace these placeholder names with the EXACT names of your 4 kids batches.
+    // Make sure they match exactly what is in your database/dropdown (case-sensitive).
+    const kidsBatches = [
+        "BTYM Wed - Fri 5pm Indu", 
+        "BTYM Tue - Fri 6pm Manasa", 
+        "BTYM Thu - Mon 6pm Meera", 
+        "BTYM Thu - Mon 5pm Medha"
+    ];
+    
+    // Check if the current batch is in your exact list
+    const isKidsBatch = kidsBatches.includes(batchName);
+    
+    let textSource;
+    if (isBtym) {
+        if (isKidsBatch) {
+            textSource = BTYM_KIDS_TEXT;
+        } else {
+            textSource = BTYM_REGULAR_TEXT;
+        }
+    } else {
+        textSource = KTK_TEXT;
+    }
     
     const val = parseInt(score);
     const map = textSource[id];
