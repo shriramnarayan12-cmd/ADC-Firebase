@@ -118,9 +118,9 @@ const BTYM_REGULAR_TEXT: Record<string, Record<number, string>> = {
         1: "Could Improve : Practice alone & with friends. Voice needs power and get more clarity on pronunciation & volume. Get the shollu correct, understand the tala and practice with metronome to get the correct speed and rhythm for jathis." 
     },
     e6: { 
-        8: "NA", 
-        5: "NA", 
-        1: "NA" 
+        8: "Very Good : Keep it up! Voice can be heard with more clarity. Practice using metronome for jathis.", 
+        5: "Good : Practice with friends and get more clarity on pronunciation & volume. Practice using metronome and tala for jathis", 
+        1: "Could Improve : Practice alone & with friends. Voice needs power and get more clarity on pronunciation & volume. Get the shollu correct, understand the tala and practice with metronome to get the correct speed and rhythm for jathis." 
     },
     e7: { 
         8: "Very Good : Well managed , keep it up !", 
