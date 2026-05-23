@@ -1559,6 +1559,14 @@ export default function App() {
             <button className="btn" id="finalize-btn" style={{ flex: 2, background: attendanceLocked ? '#666' : 'var(--primary)' }} onClick={saveAttendance} disabled={attendanceLocked}>
                 {attendanceLocked ? "SESSION FINALIZED" : "FINALIZE SESSION"}
             </button>
+
+            {/* NEW EDIT BUTTON - Only shows when attendance is locked */}
+            {attendanceLocked && (
+              <button className="btn" style={{ flex: 1, background: '#e67e22', color: 'white' }} onClick={() => setAttendanceLocked(false)}>
+                  ✏️ EDIT
+              </button>
+            )}
+
             <button className="btn" style={{ flex: 1, background: '#0056b3' }} onClick={showMonthlyHistory}>📋 VIEW NOTES</button>
             <button className="btn" style={{ flex: 1, background: '#2e7d32' }} onClick={exportAttendanceToExcel}>📊 EXPORT</button>
           </div>
