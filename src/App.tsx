@@ -606,9 +606,17 @@ export default function App() {
     setIsSyncing(true);
     const regNo = formData.reg_no.trim();
     const path = `students/${String(formData.reg_no).trim()}`;
+    
+    // --- MID-YEAR JOINER FIX: Auto-stamp today's date for brand new students ---
+    const payloadToSave = { ...formData };
+    if (!isEditMode) {
+        payloadToSave.batch_join_date = new Date().toISOString().split('T')[0];
+        payloadToSave.new_batch = formData.batch_name; // Syncs their current batch slot
+    }
+
     try {
         // --- SAFETY FIX: Use { merge: true } so we don't delete evaluations or history! ---
-        await setDoc(doc(db, 'students', String(formData.reg_no).trim()), formData, { merge: true });
+        await setDoc(doc(db, 'students', String(formData.reg_no).trim()), payloadToSave, { merge: true });
         alert(`Student ${isEditMode ? 'updated' : 'added'} successfully!`);
         setShowAddModal(false);
         setIsEditMode(false);
@@ -617,9 +625,9 @@ export default function App() {
         setCurrentData(prev => {
             if (isEditMode) {
                 // Safely merge the new form data with their existing hidden stats
-                return prev.map(s => String(s.reg_no) === String(formData.reg_no) ? { ...s, ...formData } : s);
+                return prev.map(s => String(s.reg_no) === String(formData.reg_no) ? { ...s, ...payloadToSave } : s);
             }
-            return [...prev, formData];
+            return [...prev, payloadToSave];
         });
         if (!batches.includes(formData.batch_name)) {
             setBatches(prev => [...prev, formData.batch_name].sort());
@@ -1289,9 +1297,16 @@ export default function App() {
         const attendanceSheet = filteredData.map(student => {
             const name = student.name;
             const regNo = student.reg_no;
+            const joinDate = student.batch_join_date || "2000-01-01";
+            
             const row: any = { "STUDENT NAME": name, "REG NO": regNo };
             monthlyDates.forEach(date => {
-                row[date] = (allData[date].presentStudents && allData[date].presentStudents.includes(regNo)) ? "P" : "A";
+                // EXCEL FIX: Print a dash if the class happened before they joined!
+                if (date < joinDate) {
+                    row[date] = "-"; 
+                } else {
+                    row[date] = (allData[date].presentStudents && allData[date].presentStudents.includes(regNo)) ? "P" : "A";
+                }
             });
             return row;
         });
