@@ -464,6 +464,23 @@ export default function App() {
     }
   };
 
+  const handleInlineEdit = (studentData: any) => {
+      setFormData({
+          sl_no: studentData.sl_no || "",
+          name: studentData.name || "",
+          reg_no: studentData.reg_no || "",
+          old_batch: studentData.old_batch || "",
+          new_batch: studentData.new_batch || "",
+          contact_num: studentData.contact_num || studentData.phone || "",
+          email: studentData.email || "",
+          year_of_joining: studentData.year_of_joining || "",
+          remarks: studentData.remarks || "",
+          batch_name: studentData.batch_name || studentData.new_batch || ""
+      });
+      setIsEditMode(true);
+      setShowAddModal(true);
+  };
+  
   const handleSaveStudent = async (e: FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.reg_no.trim() || !formData.batch_name.trim()) {
@@ -1406,7 +1423,18 @@ export default function App() {
                                         </span>
                                     </td>
                                     <td>
-                                        <button className="btn btn-mini" style={{ background: '#1565c0', color: 'white', padding: '8px 12px', fontSize: '0.8rem' }} onClick={() => openEval(row)}>Evaluation</button>
+                                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                                            <button className="btn btn-mini" style={{ background: '#1565c0', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => openEval(row)}>Evaluation</button>
+                                            
+                                            {/* ADMIN ONLY BUTTONS */}
+                                            {accessKey === "adc_admin_123" && (
+                                                <>
+                                                    <button className="btn btn-mini" style={{ background: '#00695c', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => handleInlineEdit(row)}>✏️ Edit</button>
+                                                    <button className="btn btn-mini" style={{ background: '#ef6c00', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => alert("Shift feature coming in Step 2!")}>🔄 Shift</button>
+                                                    <button className="btn btn-mini" style={{ background: '#c62828', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => alert("Archive feature coming in Step 3!")}>📦 Archive</button>
+                                                </>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             );
