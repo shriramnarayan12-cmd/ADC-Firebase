@@ -1009,7 +1009,13 @@ export default function App() {
     doc.text("GURU FEEDBACK:", 14, currentY);
     doc.setTextColor(0,0,0); 
     doc.setFont(undefined, 'normal');
-    doc.text(evalState.feedback || "No additional notes.", 14, currentY + 8, { maxWidth: 180 });
+    
+    // --- SMART ATTENDANCE SNAPSHOT INJECTION ---
+    const guruNotes = evalState.feedback || "No additional notes.";
+    const historyNote = selectedStudent.past_batch_history ? `\n\n${selectedStudent.past_batch_history}` : "";
+    const finalFeedback = guruNotes + historyNote;
+
+    doc.text(finalFeedback, 14, currentY + 8, { maxWidth: 180 });
     
     doc.save(`ADC_Eval_${studentName.replace(/\s+/g, '_')}.pdf`);
   };
