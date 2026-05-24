@@ -501,10 +501,36 @@ export default function App() {
       setIsSyncing(true);
       try {
           const regNo = String(studentToShift.reg_no);
-          await setDoc(doc(db, 'students', regNo), { batch_name: destinationBatch, new_batch: destinationBatch }, { merge: true });
+          const oldBatch = studentToShift.new_batch || studentToShift.batch_name;
           
-          alert("Batch shifted successfully!");
-          setCurrentData(prev => prev.map(s => String(s.reg_no) === regNo ? { ...s, batch_name: destinationBatch, new_batch: destinationBatch } : s));
+          // 1. Get today's date for the fresh start
+          const today = new Date().toISOString().split('T')[0];
+
+          // 2. Grab their exact current attendance math from the screen
+          const stats = liveStats[studentToShift.name] || { present: 0, total: 0, percent: 0 };
+          
+          // 3. Build the permanent historical note
+          const historyNote = `[System]: Shifted from ${oldBatch} to ${destinationBatch} on ${today}. Final Attendance: ${stats.present}/${stats.total} (${stats.percent}%).\n`;
+
+          // 4. Append it safely so we don't erase older shifts if they moved twice
+          const existingHistory = studentToShift.past_batch_history || "";
+          const updatedHistory = existingHistory + historyNote;
+
+          const updateData = {
+              batch_name: destinationBatch,
+              new_batch: destinationBatch,
+              batch_join_date: today,
+              past_batch_history: updatedHistory
+          };
+
+          // 5. Save everything to the database at once
+          await setDoc(doc(db, 'students', regNo), updateData, { merge: true });
+          
+          alert("Batch shifted successfully and Attendance Snapshot saved!");
+          
+          // 6. Update the screen instantly
+          setCurrentData(prev => prev.map(s => String(s.reg_no) === regNo ? { ...s, ...updateData } : s));
+          
           if (!batches.includes(destinationBatch)) {
               setBatches(prev => [...prev, destinationBatch].sort());
           }
