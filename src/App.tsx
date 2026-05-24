@@ -553,6 +553,7 @@ export default function App() {
           const updateData = {
               batch_name: destinationBatch,
               new_batch: destinationBatch,
+              old_batch: oldBatch,
               batch_join_date: today,
               past_batch_history: updatedHistory
           };
@@ -922,7 +923,19 @@ export default function App() {
 
     const studentName = selectedStudent.name;
     const stats = liveStats[studentName] || { present: 0, total: 0, percent: 0 };
-    const attendanceDisplay = `${stats.present}/${stats.total} (${stats.percent}%)`;
+    
+    // --- SMART COMBINED ATTENDANCE MATH ---
+    let combinedPresent = stats.present;
+    let combinedTotal = stats.total;
+    const historyNoteRaw = selectedStudent.past_batch_history || "";
+    const match = historyNoteRaw.match(/Final Attendance: (\d+)\/(\d+)/);
+    if (match) {
+        combinedPresent += parseInt(match[1], 10);
+        combinedTotal += parseInt(match[2], 10);
+    }
+    const combinedPercent = combinedTotal > 0 ? Math.round((combinedPresent / combinedTotal) * 100) : 0;
+    const attendanceDisplay = `${combinedPresent}/${combinedTotal} (${combinedPercent}%)`;
+    
     const studentBatch = selectedStudent.new_batch || selectedStudent.batch_name || selectedStudent['New Batch'] || "";
 
     // 1. Define the base criteria
@@ -1046,15 +1059,7 @@ export default function App() {
     doc.text("GURU FEEDBACK:", 14, currentY);
     doc.setTextColor(0,0,0); 
     doc.setFont(undefined, 'normal');
-    
-    // --- SMART ATTENDANCE SNAPSHOT INJECTION ---
-    const guruNotes = evalState.feedback || "No additional notes.";
-    const historyNoteRaw = selectedStudent.past_batch_history || "";
-    // This automatically strips out the "[System]: " prefix if it exists in the database
-    const historyNoteClean = historyNoteRaw.replace(/\[System\]:\s*/g, "");
-    const historyNote = historyNoteClean ? `\n\n${historyNoteClean}` : "";
-    const finalFeedback = guruNotes + historyNote;
-    doc.text(finalFeedback, 14, currentY + 8, { maxWidth: 180 });
+    doc.text(evalState.feedback || "No additional notes.", 14, currentY + 8, { maxWidth: 180 });
     
     doc.save(`ADC_Eval_${studentName.replace(/\s+/g, '_')}.pdf`);
   };
