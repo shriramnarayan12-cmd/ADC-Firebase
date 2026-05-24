@@ -538,6 +538,12 @@ export default function App() {
       if (!destinationBatch) return alert("Please select a destination batch.");
       if (!studentToShift) return;
 
+      // --- SAFETY BLOCKER: Prevent shifting to the exact same batch ---
+      const currentBatch = studentToShift.new_batch || studentToShift.batch_name;
+      if (destinationBatch === currentBatch) {
+          return alert(`Stop! ${studentToShift.name} is already in ${currentBatch}.`);
+      }
+
       const confirmChange = confirm(`Move ${studentToShift.name} to "${destinationBatch}"?`);
       if (!confirmChange) return;
 
