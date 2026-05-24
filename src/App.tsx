@@ -607,14 +607,18 @@ export default function App() {
     const regNo = formData.reg_no.trim();
     const path = `students/${String(formData.reg_no).trim()}`;
     try {
-        await setDoc(doc(db, 'students', String(formData.reg_no).trim()), formData);
+        // --- SAFETY FIX: Use { merge: true } so we don't delete evaluations or history! ---
+        await setDoc(doc(db, 'students', String(formData.reg_no).trim()), formData, { merge: true });
         alert(`Student ${isEditMode ? 'updated' : 'added'} successfully!`);
         setShowAddModal(false);
         setIsEditMode(false);
         
         // --- NEW OPTIMIZATION: Update screen instantly for FREE ---
         setCurrentData(prev => {
-            if (isEditMode) return prev.map(s => String(s.reg_no) === String(formData.reg_no) ? formData : s);
+            if (isEditMode) {
+                // Safely merge the new form data with their existing hidden stats
+                return prev.map(s => String(s.reg_no) === String(formData.reg_no) ? { ...s, ...formData } : s);
+            }
             return [...prev, formData];
         });
         if (!batches.includes(formData.batch_name)) {
