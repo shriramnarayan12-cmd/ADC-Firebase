@@ -534,6 +534,32 @@ export default function App() {
       }
   };
   
+  const handleArchiveStudent = async (student: any) => {
+      const confirmArchive = confirm(`Are you sure you want to archive ${student.name}? Their data will be saved permanently, but they will be removed from active lists.`);
+      if (!confirmArchive) return;
+
+      setIsSyncing(true);
+      try {
+          const regNo = String(student.reg_no);
+          
+          // 1. Tell Firebase to flag them as archived without deleting their data
+          await setDoc(doc(db, 'students', regNo), { isArchived: true }, { merge: true });
+          
+          // 2. Update the screen instantly for free
+          setCurrentData(prev => prev.map(s => String(s.reg_no) === regNo ? { ...s, isArchived: true } : s));
+          
+          // 3. Smart Re-index: Close the gap in the Roll Numbers!
+          const oldBatch = student.new_batch || student.batch_name;
+          await reindexBatchSlNos(oldBatch);
+
+      } catch (err) {
+          console.error("Error archiving student:", err);
+          alert("Archive failed. Please check connection.");
+      } finally {
+          setIsSyncing(false);
+      }
+  };
+  
   const executeShift = async () => {
       if (!destinationBatch) return alert("Please select a destination batch.");
       if (!studentToShift) return;
@@ -1350,6 +1376,7 @@ export default function App() {
   };
 
   const filteredData = currentData.filter(r => 
+    !r.isArchived && 
     (r.new_batch || r.batch_name) === currentBatchName &&
     Object.values(r).some(v => String(v).toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -1378,6 +1405,58 @@ export default function App() {
     return null;
   };
 
+  // --- MASTER ADMIN EXPORT ---
+  const handleMasterExport = () => {
+    const confirmExport = confirm("Generate Master Excel Backup for all active students?");
+    if (!confirmExport) return;
+
+    try {
+      const wb = XLSX.utils.book_new();
+      
+      // 1. Grab all active students (Ignore archived ones)
+      const activeStudents = currentData.filter(s => !s.isArchived);
+
+      if (batches.length === 0) {
+          alert("No batches found to export.");
+          return;
+      }
+
+      // 2. Loop through every batch and create a new tab for each
+      batches.forEach(batch => {
+          const batchStudents = activeStudents.filter(s => (s.new_batch || s.batch_name) === batch);
+          
+          // Skip empty batches so we don't have blank tabs
+          if (batchStudents.length === 0) return; 
+
+          // 3. Format the data beautifully for Excel
+          const exportData = batchStudents.map(s => ({
+              "Sl No": s.sl_no || "-",
+              "Name": s.name || "-",
+              "Reg No": s.reg_no || "-",
+              "Contact": s.contact_num || s.phone || "-",
+              "Email": s.email || "-",
+              "Joining Year": s.year_of_joining || "-",
+              "Remarks": s.remarks || "-",
+              "Fee Frequency": s.payment_frequency || "Quarterly"
+          }));
+
+          const ws = XLSX.utils.json_to_sheet(exportData);
+          
+          // 4. Excel tab names have a strict 31-character limit and forbid certain symbols
+          const safeTabName = batch.replace(/[\]\[*?:\/\\]/g, '').substring(0, 31);
+          XLSX.utils.book_append_sheet(wb, ws, safeTabName);
+      });
+
+      // 5. Download the file with today's date
+      const today = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `ADC_Master_Backup_${today}.xlsx`);
+      
+    } catch (err) {
+      console.error("Master Export Error:", err);
+      alert("Failed to generate Master Export. Check console for details.");
+    }
+  };
+  
   // --- EXPORT CALENDAR MONTH PAYMENTS TO EXCEL ---
   const handleExportPaymentsByMonth = async () => {
     if (!paymentExportMonth) return;
@@ -1596,7 +1675,7 @@ export default function App() {
                                                 <>
                                                     <button className="btn btn-mini" style={{ background: '#00695c', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => handleInlineEdit(row)}>✏️ Edit</button>
                                                     <button className="btn btn-mini" style={{ background: '#ef6c00', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => handleInlineShiftClick(row)}>🔄 Shift</button>
-                                                    <button className="btn btn-mini" style={{ background: '#c62828', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => alert("Archive feature coming in Step 3!")}>📦 Archive</button>
+                                                    <button className="btn btn-mini" style={{ background: '#c62828', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => handleArchiveStudent(row)}>📦 Archive</button>
                                                 </>
                                             )}
                                         </div>
@@ -1844,6 +1923,9 @@ export default function App() {
               <button className="btn" onClick={() => { setIsEditMode(false); setShowAddModal(true); }}>➕ Add New Student</button>
               <button className="btn" onClick={() => setShowBatchFeeModal(true)}>💰 Set Batch Base Fee</button>
               <button className="btn" onClick={() => setShowFreqModal(true)}>💳 Set Student Frequency</button>
+
+              {/* NEW MASTER EXPORT BUTTON */}
+              <button className="btn" style={{ background: '#1565c0' }} onClick={handleMasterExport}>📥 Download Master Backup</button>
             </div>
 
             {/* Bank Reconciliation Export Section */}
