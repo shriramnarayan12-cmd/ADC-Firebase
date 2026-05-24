@@ -298,7 +298,11 @@ export default function App() {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
-  
+
+  // Shift Modal State
+  const [showShiftModal, setShowShiftModal] = useState(false);
+  const [studentToShift, setStudentToShift] = useState<any>(null);
+  const [destinationBatch, setDestinationBatch] = useState("");
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBatchFeeModal, setShowBatchFeeModal] = useState(false);
@@ -479,6 +483,38 @@ export default function App() {
       });
       setIsEditMode(true);
       setShowAddModal(true);
+  };
+  
+  const handleInlineShiftClick = (studentData: any) => {
+      setStudentToShift(studentData);
+      setDestinationBatch(""); // Reset the dropdown
+      setShowShiftModal(true);
+  };
+
+  const executeShift = async () => {
+      if (!destinationBatch) return alert("Please select a destination batch.");
+      if (!studentToShift) return;
+
+      const confirmChange = confirm(`Move ${studentToShift.name} to "${destinationBatch}"?`);
+      if (!confirmChange) return;
+
+      setIsSyncing(true);
+      try {
+          const regNo = String(studentToShift.reg_no);
+          await setDoc(doc(db, 'students', regNo), { batch_name: destinationBatch, new_batch: destinationBatch }, { merge: true });
+          
+          alert("Batch shifted successfully!");
+          setCurrentData(prev => prev.map(s => String(s.reg_no) === regNo ? { ...s, batch_name: destinationBatch, new_batch: destinationBatch } : s));
+          if (!batches.includes(destinationBatch)) {
+              setBatches(prev => [...prev, destinationBatch].sort());
+          }
+          setShowShiftModal(false);
+      } catch (err) {
+          console.error("Error shifting batch:", err);
+          alert("Failed to shift student.");
+      } finally {
+          setIsSyncing(false);
+      }
   };
   
   const handleSaveStudent = async (e: FormEvent) => {
@@ -1430,7 +1466,7 @@ export default function App() {
                                             {accessKey === "adc_admin_123" && (
                                                 <>
                                                     <button className="btn btn-mini" style={{ background: '#00695c', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => handleInlineEdit(row)}>✏️ Edit</button>
-                                                    <button className="btn btn-mini" style={{ background: '#ef6c00', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => alert("Shift feature coming in Step 2!")}>🔄 Shift</button>
+                                                    <button className="btn btn-mini" style={{ background: '#ef6c00', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => handleInlineShiftClick(row)}>🔄 Shift</button>
                                                     <button className="btn btn-mini" style={{ background: '#c62828', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => alert("Archive feature coming in Step 3!")}>📦 Archive</button>
                                                 </>
                                             )}
@@ -1790,7 +1826,41 @@ const q4Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() 
         </div>
       </main>
 
-      {showAddModal && (
+      {/* SHIFT STUDENT MODAL */}
+      {showShiftModal && studentToShift && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: '#ef6c00' }}>Shift Student</h2>
+              <button className="btn btn-mini" style={{ background: '#666' }} onClick={() => setShowShiftModal(false)}>✕</button>
+            </div>
+            
+            <div style={{ marginBottom: '20px', background: '#f9f9f9', padding: '10px', borderRadius: '6px', border: '1px solid #eee' }}>
+              <p style={{ margin: '0 0 10px 0' }}>Move <strong>{studentToShift.name}</strong> from:</p>
+              <p style={{ margin: 0, color: '#666' }}><em>{studentToShift.new_batch || studentToShift.batch_name}</em></p>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontWeight: 'bold' }}>To Destination Batch:</label>
+              <select 
+                  value={destinationBatch} 
+                  onChange={(e) => setDestinationBatch(e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }}
+              >
+                  <option value="">-- Select Destination Batch --</option>
+                  {batches.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button className="btn" style={{ flex: 1, background: '#ef6c00' }} onClick={executeShift}>🔄 Confirm Shift</button>
+              <button className="btn" style={{ flex: 1, background: '#666' }} onClick={() => setShowShiftModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+          
+          {showAddModal && (
         <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="card" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
