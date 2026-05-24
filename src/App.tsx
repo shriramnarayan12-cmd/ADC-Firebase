@@ -510,7 +510,7 @@ export default function App() {
           const stats = liveStats[studentToShift.name] || { present: 0, total: 0, percent: 0 };
           
           // 3. Build the permanent historical note
-          const historyNote = `[System]: Shifted from ${oldBatch} to ${destinationBatch} on ${today}. Final Attendance: ${stats.present}/${stats.total} (${stats.percent}%).\n`;
+          const historyNote = `Shifted from ${oldBatch} to ${destinationBatch} on ${today}. Final Attendance: ${stats.present}/${stats.total} (${stats.percent}%).\n`;
 
           // 4. Append it safely so we don't erase older shifts if they moved twice
           const existingHistory = studentToShift.past_batch_history || "";
@@ -1012,9 +1012,11 @@ export default function App() {
     
     // --- SMART ATTENDANCE SNAPSHOT INJECTION ---
     const guruNotes = evalState.feedback || "No additional notes.";
-    const historyNote = selectedStudent.past_batch_history ? `\n\n${selectedStudent.past_batch_history}` : "";
+    const historyNoteRaw = selectedStudent.past_batch_history || "";
+    // This automatically strips out the "[System]: " prefix if it exists in the database
+    const historyNoteClean = historyNoteRaw.replace(/\[System\]:\s*/g, "");
+    const historyNote = historyNoteClean ? `\n\n${historyNoteClean}` : "";
     const finalFeedback = guruNotes + historyNote;
-
     doc.text(finalFeedback, 14, currentY + 8, { maxWidth: 180 });
     
     doc.save(`ADC_Eval_${studentName.replace(/\s+/g, '_')}.pdf`);
