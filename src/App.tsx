@@ -937,8 +937,11 @@ export default function App() {
     let combinedPresent = stats.present;
     let combinedTotal = stats.total;
     const historyNoteRaw = selectedStudent.past_batch_history || "";
-    const match = historyNoteRaw.match(/Final Attendance: (\d+)\/(\d+)/);
-    if (match) {
+    
+    // Safely extract and sum up EVERY past shift, even if they shifted multiple times
+    const regex = /Final Attendance: (\d+)\/(\d+)/g;
+    let match;
+    while ((match = regex.exec(historyNoteRaw)) !== null) {
         combinedPresent += parseInt(match[1], 10);
         combinedTotal += parseInt(match[2], 10);
     }
