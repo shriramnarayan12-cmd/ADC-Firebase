@@ -1490,9 +1490,12 @@ export default function App() {
                         filteredData.map((row, idx) => {
                             const regNo = row.reg_no;
                             // Filter sessions to only include Regular, Re-Scheduled, or undefined/blank (treated as Regular)
+                            // Filter sessions to only count ones that happened AFTER they joined
+                            const joinDate = row.batch_join_date || "2000-01-01";
                             const validSessions = allBatchAttendance.filter(record => {
                                 const type = (record.sessionType || "Regular").trim();
-                                return type === "Regular" || type === "Re-Scheduled";
+                                const isRegularOrResched = type === "Regular" || type === "Re-Scheduled";
+                                return isRegularOrResched && (record.date >= joinDate);
                             });
                             const totalClasses = validSessions.length;
                             const attendedClasses = validSessions.filter(record => 
