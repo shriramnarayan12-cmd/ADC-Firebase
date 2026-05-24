@@ -1100,12 +1100,19 @@ export default function App() {
             });
             setAttendanceData(initialData);
         } else {
-            setAttendanceRoster(filteredData);
+            // --- SMART ROSTER FILTERING (The Bulletproof Fix) ---
+            // Only show students who were officially in the batch on this specific calendar date
+            const validRoster = filteredData.filter(student => {
+                const joinDate = student.batch_join_date || "2000-01-01";
+                return attendanceDate >= joinDate;
+            });
+
+            setAttendanceRoster(validRoster);
             setAttendanceLocked(false);
             setSessionNotes("");
             setSessionType("Regular");
             const initialData: Record<string, string> = {};
-            filteredData.forEach(row => {
+            validRoster.forEach(row => {
                 initialData[row.reg_no] = "Present";
             });
             setAttendanceData(initialData);
