@@ -1433,6 +1433,8 @@ export default function App() {
               "Sl No": s.sl_no || "-",
               "Name": s.name || "-",
               "Reg No": s.reg_no || "-",
+              "Old Batch": s.old_batch || "-",
+              "Current Batch": s.new_batch || s.batch_name || "-",
               "Contact": s.contact_num || s.phone || "-",
               "Email": s.email || "-",
               "Joining Year": s.year_of_joining || "-",
