@@ -377,8 +377,17 @@ export default function App() {
         const stats: Record<string, any> = {};
         currentData.forEach(student => {
           const regNo = student.reg_no;
-          const total = records.length;
-          const present = records.filter(r => r.presentStudents && r.presentStudents.includes(regNo)).length;
+          const joinDate = student.batch_join_date || "2000-01-01";
+          
+          // Filter records to only count ones AFTER they joined AND are Regular/Re-Scheduled
+          const validRecords = records.filter(record => {
+              const type = (record.sessionType || "Regular").trim();
+              const isRegularOrResched = type === "Regular" || type === "Re-Scheduled";
+              return isRegularOrResched && (record.date >= joinDate);
+          });
+
+          const total = validRecords.length;
+          const present = validRecords.filter(r => r.presentStudents && r.presentStudents.includes(regNo)).length;
           const percent = total > 0 ? Math.round((present / total) * 100) : 0;
           stats[student.name] = { present, total, percent };
         });
