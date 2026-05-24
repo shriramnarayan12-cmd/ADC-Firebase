@@ -217,6 +217,7 @@ export default function App() {
   const [sessionNotes, setSessionNotes] = useState("");
   const [sessionType, setSessionType] = useState("Regular");
   const [attendanceData, setAttendanceData] = useState<Record<string, string>>({});
+  const [attendanceRoster, setAttendanceRoster] = useState<any[]>([]);
   const [allBatchAttendance, setAllBatchAttendance] = useState<any[]>([]);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [fromDate, setFromDate] = useState("");
@@ -491,6 +492,39 @@ export default function App() {
       setShowShiftModal(true);
   };
 
+  // --- SMART SL NO RE-INDEXER ---
+  const reindexBatchSlNos = async (targetBatch: string) => {
+      try {
+          // 1. Fetch all active students in this batch directly from the DB
+          const q = query(collection(db, 'students'), where('batch_name', '==', targetBatch));
+          const snap = await getDocs(q);
+          let studentsInBatch: any[] = [];
+          snap.forEach(doc => {
+              if (!doc.data().isArchived) studentsInBatch.push(doc.data());
+          });
+
+          // 2. Sort them alphabetically by name
+          studentsInBatch.sort((a, b) => a.name.localeCompare(b.name));
+
+          let newCurrentData = [...currentData];
+
+          // 3. Assign perfect sequential numbers
+          for (let i = 0; i < studentsInBatch.length; i++) {
+              const student = studentsInBatch[i];
+              const newSlNo = String(i + 1);
+              
+              if (student.sl_no !== newSlNo) {
+                  await setDoc(doc(db, 'students', String(student.reg_no)), { sl_no: newSlNo }, { merge: true });
+                  const idx = newCurrentData.findIndex(s => String(s.reg_no) === String(student.reg_no));
+                  if (idx > -1) newCurrentData[idx].sl_no = newSlNo;
+              }
+          }
+          setCurrentData(newCurrentData);
+      } catch (err) {
+          console.error("Error reindexing Sl Nos:", err);
+      }
+  };
+  
   const executeShift = async () => {
       if (!destinationBatch) return alert("Please select a destination batch.");
       if (!studentToShift) return;
@@ -534,6 +568,9 @@ export default function App() {
           if (!batches.includes(destinationBatch)) {
               setBatches(prev => [...prev, destinationBatch].sort());
           }
+        // Fix the gaps in the old batch, and sequence the new batch
+          await reindexBatchSlNos(oldBatch);
+          await reindexBatchSlNos(destinationBatch);
           setShowShiftModal(false);
       } catch (err) {
           console.error("Error shifting batch:", err);
@@ -1039,12 +1076,17 @@ export default function App() {
             const initialData: Record<string, string> = {};
             const presentList = data.presentStudents || [];
             
-            filteredData.forEach(row => {
+            // LOAD HISTORICAL ROSTER (If it exists) OR FALLBACK TO CURRENT
+            const rosterToUse = data.roster ? data.roster.map((rNo: string) => currentData.find(s => s.reg_no === rNo)).filter(Boolean) : filteredData;
+            setAttendanceRoster(rosterToUse);
+
+            rosterToUse.forEach((row: any) => {
                 const regNo = row.reg_no;
                 initialData[regNo] = presentList.includes(regNo) ? "Present" : "Absent";
             });
             setAttendanceData(initialData);
         } else {
+            setAttendanceRoster(filteredData);
             setAttendanceLocked(false);
             setSessionNotes("");
             setSessionType("Regular");
@@ -1133,7 +1175,8 @@ export default function App() {
         date: attendanceDate, 
         notes: sessionNotes, 
         sessionType: sessionType, 
-        presentStudents: presentStudents
+        presentStudents: presentStudents,
+        roster: attendanceRoster.map(s => s.reg_no) // Takes a permanent photograph of this roster
     };
 
     const finalizeBtn = document.getElementById("finalize-btn") as HTMLButtonElement;
@@ -1635,7 +1678,7 @@ export default function App() {
                 <tr><th>Name</th><th>Status</th></tr>
               </thead>
               <tbody id="att-body">
-                {filteredData.map((row, idx) => {
+                {attendanceRoster.map((row, idx) => {
                     const name = row.name;
                     const regNo = row.reg_no;
                     const status = attendanceData[regNo] || "Present";
