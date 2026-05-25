@@ -389,7 +389,7 @@ export default function App() {
           const total = validRecords.length;
           const present = validRecords.filter(r => r.presentStudents && r.presentStudents.includes(regNo)).length;
           const percent = total > 0 ? Math.round((present / total) * 100) : 0;
-          stats[student.name] = { present, total, percent };
+stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registration Number
         });
         setLiveStats(stats);
       } catch (err) {
@@ -582,7 +582,7 @@ export default function App() {
           const today = new Date().toISOString().split('T')[0];
 
           // 2. Grab their exact current attendance math from the screen
-          const stats = liveStats[studentToShift.name] || { present: 0, total: 0, percent: 0 };
+const stats = liveStats[studentToShift.reg_no] || { present: 0, total: 0, percent: 0 };
           
           // 3. Build the permanent historical note
           const historyNote = `Shifted from ${oldBatch} to ${destinationBatch} on ${today}. Final Attendance: ${stats.present}/${stats.total} (${stats.percent}%).\n`;
@@ -975,7 +975,7 @@ export default function App() {
     if (!selectedStudent) return alert("Please select a student first!");
 
     const studentName = selectedStudent.name;
-    const stats = liveStats[studentName] || { present: 0, total: 0, percent: 0 };
+const stats = liveStats[selectedStudent.reg_no] || { present: 0, total: 0, percent: 0 };
     
     // --- SMART COMBINED ATTENDANCE MATH ---
     let combinedPresent = stats.present;
