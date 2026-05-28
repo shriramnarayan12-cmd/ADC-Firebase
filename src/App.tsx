@@ -60,6 +60,17 @@ const handleFirestoreError = (error: unknown, operationType: OperationType, path
 // --- Constants & Configuration ---
 const DB_PREFIX = "ADC_STUDENT_CACHE_";
 
+// Add the exact Rajajinagar batch names here later
+const RAJAJINAGAR_BATCHES = [
+  "Rajaji Batch 1",
+  "Rajaji Batch 2",
+  "Rajaji Batch 3",
+  "Rajaji Batch 4",
+  "Rajaji Batch 5",
+  "Rajaji Batch 6",
+  "Rajaji Batch 7"
+];
+
 const KTK_TEXT: Record<string, Record<number, string>> = {
     e1: { 8: "Very good: Work on more details with eyes, eye brows & finger tips, practice every day for one hour", 5: "Good: Work on repetitions and every time observe keenly how the relationship builds between different parts of the body. Consciously give it a wholesome treatment. Practice one hour every day", 1: "Could Improve: Practice each movement five times before you move to next and keep it going till you complete the lesson, Practice every day for 1- 2 hours" },
     e2: { 8: "Very good: Keep practising to maintain because without practise quality can drop. Work on all compositions learnt", 5: "Good: Work on finishing each action fully to get to next level, repeat practise helps in better clarity", 1: "Could Improve: Keep conscious awareness of movements & details it requires, repeat all movements / segments five times. Practise every day for 1-2 hrs" },
@@ -227,6 +238,7 @@ export default function App() {
   const [analyticsResults, setAnalyticsResults] = useState<any>(null);
   const [isFetchingAttendance, setIsFetchingAttendance] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<"admin" | "basavanagudi" | "rajajinagar" | null>(null);
   const [username, setUsername] = useState("");
   const [accessKey, setAccessKey] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -245,18 +257,24 @@ export default function App() {
  const handleLogin = async (e: FormEvent) => {
   e.preventDefault();
   
-  // Clean up the inputs just in case there are accidental spaces
   const enteredId = username.trim();
   const enteredKey = accessKey.trim();
 
-  // Define the strict combinations
+  // The three login combinations
   const isAdmin = enteredId === "admin" && enteredKey === "adc_admin_123";
-  const isFaculty = enteredId === "faculty" && enteredKey === "adc_password_2026";
+  const isBasavanagudi = enteredId === "faculty" && enteredKey === "adc_password_2026";
+  const isRajajinagar = enteredId === "rajajinagar" && enteredKey === "adc_raja_2026";
 
-  if (isAdmin || isFaculty) {
+  if (isAdmin || isBasavanagudi || isRajajinagar) {
     try {
       await signInAnonymously(auth);
       setIsLoggedIn(true);
+      
+      // Assign the role tag
+      if (isAdmin) setUserRole("admin");
+      else if (isBasavanagudi) setUserRole("basavanagudi");
+      else if (isRajajinagar) setUserRole("rajajinagar");
+      
     } catch (err) {
       console.error("Login error:", err);
       alert("Authentication failed.");
@@ -270,6 +288,7 @@ export default function App() {
     try {
       await signOut(auth);
       setIsLoggedIn(false);
+      setUserRole(null);
       // Clear all local state
       setCurrentData([]);
       setBatches([]);
@@ -349,7 +368,7 @@ export default function App() {
       testConnection();
       loadBatchData();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, userRole]);
 
   useEffect(() => {
     if (activeView === 'attendance-view') {
@@ -462,12 +481,22 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
 
         setCurrentData(freshData);
         
-        // Extract unique batches
-        const uniqueBatches = [...new Set(freshData.map(s => s.new_batch || s.batch_name))].filter(Boolean).sort() as string[];
-        setBatches(uniqueBatches);
+        // Extract all unique batches
+        const allUniqueBatches = [...new Set(freshData.map(s => s.new_batch || s.batch_name))].filter(Boolean).sort() as string[];
         
-        if (!currentBatchName && uniqueBatches.length > 0) {
-            setCurrentBatchName(uniqueBatches[0]);
+        // --- THE MASTER FILTER ---
+        let allowedBatches = allUniqueBatches;
+        
+        if (userRole === "rajajinagar") {
+            allowedBatches = allUniqueBatches.filter(b => RAJAJINAGAR_BATCHES.includes(b));
+        } else if (userRole === "basavanagudi") {
+            allowedBatches = allUniqueBatches.filter(b => !RAJAJINAGAR_BATCHES.includes(b));
+        }
+
+        setBatches(allowedBatches);
+        
+        if (!currentBatchName && allowedBatches.length > 0) {
+            setCurrentBatchName(allowedBatches[0]);
         }
 
         localStorage.setItem(DB_PREFIX + "ALL", JSON.stringify(freshData));
@@ -1581,7 +1610,7 @@ const stats = liveStats[selectedStudent.reg_no] || { present: 0, total: 0, perce
     </div>
 
     {/* Admin button only shows for the Admin */}
-    {accessKey === "adc_admin_123" && (
+    {userRole === "admin" && (
       <div className={`nav-item ${activeView === 'admin-view' ? 'active' : ''}`} id="admin-nav-btn" onClick={() => navAction('admin-view')}><span>⚙</span> Admin</div>
     )}
   </div>
@@ -1673,7 +1702,7 @@ const stats = liveStats[selectedStudent.reg_no] || { present: 0, total: 0, perce
                                             <button className="btn btn-mini" style={{ background: '#1565c0', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => openEval(row)}>Evaluation</button>
                                             
                                             {/* ADMIN ONLY BUTTONS */}
-                                            {accessKey === "adc_admin_123" && (
+                                            {userRole === "admin" && (
                                                 <>
                                                     <button className="btn btn-mini" style={{ background: '#00695c', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => handleInlineEdit(row)}>✏️ Edit</button>
                                                     <button className="btn btn-mini" style={{ background: '#ef6c00', color: 'white', padding: '6px 10px', fontSize: '0.75rem' }} onClick={() => handleInlineShiftClick(row)}>🔄 Shift</button>
