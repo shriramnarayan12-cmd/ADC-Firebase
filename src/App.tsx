@@ -61,14 +61,15 @@ const handleFirestoreError = (error: unknown, operationType: OperationType, path
 const DB_PREFIX = "ADC_STUDENT_CACHE_";
 
 // Add the exact Rajajinagar batch names here later
+// Rajajinagar authorized batches
 const RAJAJINAGAR_BATCHES = [
-  "Rajaji Batch 1",
-  "Rajaji Batch 2",
-  "Rajaji Batch 3",
-  "Rajaji Batch 4",
-  "Rajaji Batch 5",
-  "Rajaji Batch 6",
-  "Rajaji Batch 7"
+  "TUE-THU 5PM Maanvi",
+  "TUE-THU 6:30PM MAANVI",
+  "TUE-THU 6PM MAANVI",
+  "SAT-SUN 8:30AM ROHINI",
+  "SAT-SUN 9:30AM ROHINI",
+  "SAT - SUN 7:30AM ROHINI",
+  "TUE-THU 7:30PM RAJ"
 ];
 
 const KTK_TEXT: Record<string, Record<number, string>> = {
