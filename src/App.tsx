@@ -72,6 +72,14 @@ const RAJAJINAGAR_BATCHES = [
   "TUE-THU 7:30PM RAJ"
 ];
 
+// Online authorized batches
+const ONLINE_BATCHES = [
+  "AOB INDU",
+  "AOB MEDHA",
+  "AOK ROHINI",
+  "AOK MAANVI"
+];
+
 const KTK_TEXT: Record<string, Record<number, string>> = {
     e1: { 8: "Very good: Work on more details with eyes, eye brows & finger tips, practice every day for one hour", 5: "Good: Work on repetitions and every time observe keenly how the relationship builds between different parts of the body. Consciously give it a wholesome treatment. Practice one hour every day", 1: "Could Improve: Practice each movement five times before you move to next and keep it going till you complete the lesson, Practice every day for 1- 2 hours" },
     e2: { 8: "Very good: Keep practising to maintain because without practise quality can drop. Work on all compositions learnt", 5: "Good: Work on finishing each action fully to get to next level, repeat practise helps in better clarity", 1: "Could Improve: Keep conscious awareness of movements & details it requires, repeat all movements / segments five times. Practise every day for 1-2 hrs" },
@@ -239,7 +247,9 @@ export default function App() {
   const [analyticsResults, setAnalyticsResults] = useState<any>(null);
   const [isFetchingAttendance, setIsFetchingAttendance] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<"admin" | "basavanagudi" | "rajajinagar" | null>(null);
+  const [userRole, setUserRole] = useState<"admin" | "basavanagudi" | "rajajinagar" | "online" | null>(
+    (localStorage.getItem('adc_user_role') as any) || null
+  );
   const [username, setUsername] = useState("");
   const [accessKey, setAccessKey] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -261,27 +271,37 @@ export default function App() {
   const enteredId = username.trim();
   const enteredKey = accessKey.trim();
 
-  // The three login combinations
-  const isAdmin = enteredId === "admin" && enteredKey === "adc_admin_123";
-  const isBasavanagudi = enteredId === "faculty" && enteredKey === "adc_password_2026";
-  const isRajajinagar = enteredId === "rajajinagar" && enteredKey === "adc_raja_2026";
-
-  if (isAdmin || isBasavanagudi || isRajajinagar) {
-    try {
+  try {
+    if (enteredId === "admin" && enteredKey === "adc_admin_123") {
       await signInAnonymously(auth);
       setIsLoggedIn(true);
-      
-      // Assign the role tag
-      if (isAdmin) setUserRole("admin");
-      else if (isBasavanagudi) setUserRole("basavanagudi");
-      else if (isRajajinagar) setUserRole("rajajinagar");
-      
-    } catch (err) {
-      console.error("Login error:", err);
-      alert("Authentication failed.");
+      setUserRole("admin");
+      localStorage.setItem('adc_user_role', 'admin');
+    } 
+    else if (enteredId === "faculty" && enteredKey === "adc_password_2026") {
+      await signInAnonymously(auth);
+      setIsLoggedIn(true);
+      setUserRole("basavanagudi");
+      localStorage.setItem('adc_user_role', 'basavanagudi');
+    } 
+    else if (enteredId === "rajajinagar" && enteredKey === "adc_raja_2026") {
+      await signInAnonymously(auth);
+      setIsLoggedIn(true);
+      setUserRole("rajajinagar");
+      localStorage.setItem('adc_user_role', 'rajajinagar');
     }
-  } else {
-    alert("Invalid Credentials");
+    else if (enteredId === "online" && enteredKey === "adc_online_2026") {
+      await signInAnonymously(auth);
+      setIsLoggedIn(true);
+      setUserRole("online");
+      localStorage.setItem('adc_user_role', 'online');
+    }
+    else {
+      alert("Invalid Credentials");
+    }
+  } catch (err) {
+    console.error("Login error:", err);
+    alert("Authentication failed.");
   }
 };
 
@@ -290,6 +310,7 @@ export default function App() {
       await signOut(auth);
       setIsLoggedIn(false);
       setUserRole(null);
+      localStorage.removeItem('adc_user_role');
       // Clear all local state
       setCurrentData([]);
       setBatches([]);
@@ -490,8 +511,12 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
         
         if (userRole === "rajajinagar") {
             allowedBatches = allUniqueBatches.filter(b => RAJAJINAGAR_BATCHES.includes(b));
+        } else if (userRole === "online") {
+            // Online only sees the 4 specific online batches
+            allowedBatches = allUniqueBatches.filter(b => ONLINE_BATCHES.includes(b));
         } else if (userRole === "basavanagudi") {
-            allowedBatches = allUniqueBatches.filter(b => !RAJAJINAGAR_BATCHES.includes(b));
+            // Basavanagudi sees everything EXCEPT Rajajinagar and Online batches
+            allowedBatches = allUniqueBatches.filter(b => !RAJAJINAGAR_BATCHES.includes(b) && !ONLINE_BATCHES.includes(b));
         }
 
         setBatches(allowedBatches);
