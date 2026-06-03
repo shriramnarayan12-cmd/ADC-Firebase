@@ -75,9 +75,13 @@ const RAJAJINAGAR_BATCHES = [
 // Online authorized batches
 const ONLINE_BATCHES = [
   "AOB INDU",
-  "AOB MEDHA",
+  "AOB MON 12PM Medha",
+  "AOB MON 8:30PM Medha",
   "AOK ROHINI",
-  "AOK MAANVI"
+  "AOK WED 8:30PM Maanvi",
+  "AOK FRI 6AM Maanvi",
+  "AOK FRI 8PM Maanvi",
+  "AOK WED 7:30PM Maanvi"
 ];
 
 const KTK_TEXT: Record<string, Record<number, string>> = {
