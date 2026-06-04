@@ -75,7 +75,7 @@ const RAJAJINAGAR_BATCHES = [
 // Online authorized batches
 const ONLINE_BATCHES = [
   "AOB WED 11AM INDU",
-  "AOB WED 10AM INDU"
+  "AOB WED 10AM INDU",
   "AOB MON 12PM Medha",
   "AOB MON 8:30PM Medha",
   "AOK ROHINI",
