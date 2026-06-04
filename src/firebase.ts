@@ -2,6 +2,9 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
+// --- NEW: Import App Check ---
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDbl2GlBosoBB4_xo7BdvJTHlOSoJ7AjT4",
@@ -15,11 +18,26 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// --- NEW: The App Check "Outside Bouncer" ---
+// We initialize this before the database so the bouncer is ready at the door.
+if (typeof window !== "undefined") {
+  // Optional: This line helps bypass reCAPTCHA blocks when you test locally
+  if (window.location.hostname === "localhost") {
+    (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
+  
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider('6LdzKA0tAAAAAFAH8F3ACodnwHMOVNQ3U-ioW29W'),
+    isTokenAutoRefreshEnabled: true // Firebase will handle renewing the token automatically
+  });
+}
+// --------------------------------------------
+
 // Initialize Firestore
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-// --- NEW: PHASE 1 OFFLINE MEMORY ---
+// --- PHASE 1 OFFLINE MEMORY ---
 // This tells the browser to save a local copy of the database.
 enableIndexedDbPersistence(db)
   .catch((err) => {
@@ -31,4 +49,4 @@ enableIndexedDbPersistence(db)
   });
 // -----------------------------------
 
-console.log('Firebase Handshake & Memory Successful!');
+console.log('Firebase Handshake, App Check & Memory Successful!');
