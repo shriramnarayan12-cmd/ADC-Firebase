@@ -602,13 +602,24 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
       try {
           const regNo = String(student.reg_no);
           
-          // 1. Tell Firebase to flag them as archived without deleting their data
-          await setDoc(doc(db, 'students', regNo), { isArchived: true }, { merge: true });
+          // --- NEW ARCHITECT FIX: Lock in the math before they go into hiding ---
+          const stats = liveStats[student.reg_no] || { present: 0, total: 0, percent: 0 };
+          const currentPastPresent = student.past_present || 0;
+          const currentPastTotal = student.past_total || 0;
+
+          const updateData = { 
+              isArchived: true, 
+              // 1. Save their hard numbers permanently
+              past_present: currentPastPresent + stats.present,
+              past_total: currentPastTotal + stats.total,
+              // 2. Set join date to the future so the calculator pauses while they are gone
+              batch_join_date: "2099-01-01"
+          };
           
-          // 2. Update the screen instantly for free
-          setCurrentData(prev => prev.map(s => String(s.reg_no) === regNo ? { ...s, isArchived: true } : s));
+          await setDoc(doc(db, 'students', regNo), updateData, { merge: true });
           
-          // 3. Smart Re-index: Close the gap in the Roll Numbers!
+          setCurrentData(prev => prev.map(s => String(s.reg_no) === regNo ? { ...s, ...updateData } : s));
+          
           const oldBatch = student.new_batch || student.batch_name;
           await reindexBatchSlNos(oldBatch);
 
@@ -642,7 +653,7 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
           const today = new Date().toISOString().split('T')[0];
 
           // 2. Grab their exact current attendance math from the screen
-const stats = liveStats[studentToShift.reg_no] || { present: 0, total: 0, percent: 0 };
+          const stats = liveStats[studentToShift.reg_no] || { present: 0, total: 0, percent: 0 };
           
           // 3. Build the permanent historical note
           const historyNote = `Shifted from ${oldBatch} to ${destinationBatch} on ${today}. Final Attendance: ${stats.present}/${stats.total} (${stats.percent}%).\n`;
@@ -651,12 +662,18 @@ const stats = liveStats[studentToShift.reg_no] || { present: 0, total: 0, percen
           const existingHistory = studentToShift.past_batch_history || "";
           const updatedHistory = existingHistory + historyNote;
 
+          // --- THE FIX: Accumulate and save the hard numbers securely ---
+          const currentPastPresent = studentToShift.past_present || 0;
+          const currentPastTotal = studentToShift.past_total || 0;
+
           const updateData = {
               batch_name: destinationBatch,
               new_batch: destinationBatch,
               old_batch: oldBatch,
-              batch_join_date: today,
-              past_batch_history: updatedHistory
+              batch_join_date: today, // Resets the clock to today!
+              past_batch_history: updatedHistory,
+              past_present: currentPastPresent + stats.present, // Save hard number
+              past_total: currentPastTotal + stats.total        // Save hard number
           };
 
           // 5. Save everything to the database at once
@@ -803,6 +820,47 @@ const stats = liveStats[studentToShift.reg_no] || { present: 0, total: 0, percen
     }
   };
 
+  const handleReturnStudentPrompt = async () => {
+    const regNo = prompt("Enter the Registration Number of the returning student:");
+    if (!regNo) return;
+
+    const newBatch = prompt("Which batch are they joining today? (Type the exact name)");
+    if (!newBatch) return;
+
+    setIsSyncing(true);
+    try {
+        const studentDoc = await getDoc(doc(db, 'students', String(regNo)));
+        if (studentDoc.exists()) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // The Smart Return: Bring them out of hiding AND reset their start clock!
+            const updateData = {
+                isArchived: false, 
+                batch_name: newBatch,
+                new_batch: newBatch,
+                batch_join_date: today 
+            };
+            
+            await setDoc(doc(db, 'students', String(regNo)), updateData, { merge: true });
+            alert(`Welcome back! Student successfully returned and shifted to ${newBatch}.`);
+            
+            // Update screen instantly
+            setCurrentData(prev => prev.map(s => String(s.reg_no) === String(regNo) ? { ...s, ...updateData } : s));
+            if (!batches.includes(newBatch)) {
+                setBatches(prev => [...prev, newBatch].sort());
+            }
+        } else {
+            alert(`Student with Reg No "${regNo}" not found!`);
+        }
+    } catch (err) {
+        console.error("Error returning student:", err);
+        alert("Failed to return student.");
+    } finally {
+        setIsSyncing(false);
+    }
+  };
+  
+  
   const handleDeleteStudent = async () => {
     const regNo = prompt("Enter Student Registration Number to DELETE:");
     if (!regNo) return;
@@ -1037,18 +1095,11 @@ const stats = liveStats[studentToShift.reg_no] || { present: 0, total: 0, percen
     const studentName = selectedStudent.name;
 const stats = liveStats[selectedStudent.reg_no] || { present: 0, total: 0, percent: 0 };
     
-    // --- SMART COMBINED ATTENDANCE MATH ---
-    let combinedPresent = stats.present;
-    let combinedTotal = stats.total;
-    const historyNoteRaw = selectedStudent.past_batch_history || "";
+    // --- SMART COMBINED ATTENDANCE MATH (UPGRADED) ---
+    // Safely combine their current batch math with their locked historical math
+    let combinedPresent = stats.present + (selectedStudent.past_present || 0);
+    let combinedTotal = stats.total + (selectedStudent.past_total || 0);
     
-    // Safely extract and sum up EVERY past shift, even if they shifted multiple times
-    const regex = /Final Attendance: (\d+)\/(\d+)/g;
-    let match;
-    while ((match = regex.exec(historyNoteRaw)) !== null) {
-        combinedPresent += parseInt(match[1], 10);
-        combinedTotal += parseInt(match[2], 10);
-    }
     const combinedPercent = combinedTotal > 0 ? Math.round((combinedPresent / combinedTotal) * 100) : 0;
     const attendanceDisplay = `${combinedPresent}/${combinedTotal} (${combinedPercent}%)`;
     
@@ -1983,6 +2034,7 @@ const stats = liveStats[selectedStudent.reg_no] || { present: 0, total: 0, perce
             <h2 style={{ marginTop: 0, fontSize: '1.2rem' }}>System Administration</h2>
             <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => { setIsEditMode(false); setShowAddModal(true); }}>➕ Add New Student</button>
+              <button className="btn" style={{ background: '#2e7d32' }} onClick={handleReturnStudentPrompt}>👋 Return Student</button>
               <button className="btn" onClick={() => setShowBatchFeeModal(true)}>💰 Set Batch Base Fee</button>
               <button className="btn" onClick={() => setShowFreqModal(true)}>💳 Set Student Frequency</button>
 
