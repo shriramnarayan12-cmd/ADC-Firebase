@@ -654,7 +654,7 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
           const oldBatch = studentToShift.new_batch || studentToShift.batch_name;
           
           // 1. Get today's date for the fresh start
-          const today = new Date().toISOString().split('T')[0];
+          const today = new Date().toLocaleDateString('en-CA');
 
           // 2. Grab their exact current attendance math from the screen
           const stats = liveStats[studentToShift.reg_no] || { present: 0, total: 0, percent: 0 };
@@ -717,10 +717,9 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
     // --- MID-YEAR JOINER FIX: Auto-stamp today's date for brand new students ---
     const payloadToSave = { ...formData };
     if (!isEditMode) {
-        payloadToSave.batch_join_date = new Date().toISOString().split('T')[0];
+        payloadToSave.batch_join_date = new Date().toLocaleDateString('en-CA');
         payloadToSave.new_batch = formData.batch_name; // Syncs their current batch slot
     }
-
     try {
         // --- SAFETY FIX: Use { merge: true } so we don't delete evaluations or history! ---
         await setDoc(doc(db, 'students', String(formData.reg_no).trim()), payloadToSave, { merge: true });
@@ -832,7 +831,7 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
     try {
         const studentDoc = await getDoc(doc(db, 'students', String(returnForm.reg_no)));
         if (studentDoc.exists()) {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA');
             
             // The Smart Return: Bring them out of hiding AND reset their start clock!
             const updateData = {
