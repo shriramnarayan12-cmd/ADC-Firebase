@@ -1743,11 +1743,16 @@ const stats = liveStats[selectedStudent.reg_no] || { present: 0, total: 0, perce
                                 const isRegularOrResched = type === "Regular" || type === "Re-Scheduled";
                                 return isRegularOrResched && (record.date >= joinDate);
                             });
-                            const totalClasses = validSessions.length;
-                            const attendedClasses = validSessions.filter(record => 
-                                record.presentStudents && record.presentStudents.includes(regNo)
-                            ).length;
-                            const percent = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0;
+                            // --- SMART COMBINED MATH FOR LIVE SCREEN ---
+const liveTotal = validSessions.length;
+const liveAttended = validSessions.filter(record => 
+    record.presentStudents && record.presentStudents.includes(regNo)
+).length;
+
+// Safely add the locked history from the vault
+const totalClasses = liveTotal + (row.past_total || 0);
+const attendedClasses = liveAttended + (row.past_present || 0);
+const percent = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0;
 
                             const badgeColor = percent >= 80 ? '#e8f5e9' : (percent >= 50 ? '#fff3e0' : '#ffebee');
                             const textColor = percent >= 80 ? '#2e7d32' : (percent >= 50 ? '#ef6c00' : '#c62828');
