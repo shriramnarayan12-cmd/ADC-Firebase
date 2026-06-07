@@ -350,6 +350,10 @@ export default function App() {
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [studentToShift, setStudentToShift] = useState<any>(null);
   const [destinationBatch, setDestinationBatch] = useState("");
+
+  // Return Student Modal State
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnForm, setReturnForm] = useState({ reg_no: "", new_batch: "" });
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBatchFeeModal, setShowBatchFeeModal] = useState(false);
@@ -820,37 +824,38 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
     }
   };
 
-  const handleReturnStudentPrompt = async () => {
-    const regNo = prompt("Enter the Registration Number of the returning student:");
-    if (!regNo) return;
-
-    const newBatch = prompt("Which batch are they joining today? (Type the exact name)");
-    if (!newBatch) return;
+  const executeReturnStudent = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!returnForm.reg_no || !returnForm.new_batch) return alert("Please select both student and batch.");
 
     setIsSyncing(true);
     try {
-        const studentDoc = await getDoc(doc(db, 'students', String(regNo)));
+        const studentDoc = await getDoc(doc(db, 'students', String(returnForm.reg_no)));
         if (studentDoc.exists()) {
             const today = new Date().toISOString().split('T')[0];
             
             // The Smart Return: Bring them out of hiding AND reset their start clock!
             const updateData = {
                 isArchived: false, 
-                batch_name: newBatch,
-                new_batch: newBatch,
+                batch_name: returnForm.new_batch,
+                new_batch: returnForm.new_batch,
                 batch_join_date: today 
             };
             
-            await setDoc(doc(db, 'students', String(regNo)), updateData, { merge: true });
-            alert(`Welcome back! Student successfully returned and shifted to ${newBatch}.`);
+            await setDoc(doc(db, 'students', String(returnForm.reg_no)), updateData, { merge: true });
+            alert(`Welcome back! Student successfully returned and shifted to ${returnForm.new_batch}.`);
             
             // Update screen instantly
-            setCurrentData(prev => prev.map(s => String(s.reg_no) === String(regNo) ? { ...s, ...updateData } : s));
-            if (!batches.includes(newBatch)) {
-                setBatches(prev => [...prev, newBatch].sort());
+            setCurrentData(prev => prev.map(s => String(s.reg_no) === String(returnForm.reg_no) ? { ...s, ...updateData } : s));
+            if (!batches.includes(returnForm.new_batch)) {
+                setBatches(prev => [...prev, returnForm.new_batch].sort());
             }
+            
+            // Close modal and reset form
+            setShowReturnModal(false);
+            setReturnForm({ reg_no: "", new_batch: "" });
         } else {
-            alert(`Student with Reg No "${regNo}" not found!`);
+            alert(`Student not found!`);
         }
     } catch (err) {
         console.error("Error returning student:", err);
@@ -2034,7 +2039,7 @@ const stats = liveStats[selectedStudent.reg_no] || { present: 0, total: 0, perce
             <h2 style={{ marginTop: 0, fontSize: '1.2rem' }}>System Administration</h2>
             <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button className="btn" onClick={() => { setIsEditMode(false); setShowAddModal(true); }}>➕ Add New Student</button>
-              <button className="btn" style={{ background: '#2e7d32' }} onClick={handleReturnStudentPrompt}>👋 Return Student</button>
+              <button className="btn" style={{ background: '#2e7d32' }} onClick={() => setShowReturnModal(true)}>👋 Return Student from Leave</button>
               <button className="btn" onClick={() => setShowBatchFeeModal(true)}>💰 Set Batch Base Fee</button>
               <button className="btn" onClick={() => setShowFreqModal(true)}>💳 Set Student Frequency</button>
 
@@ -2181,6 +2186,51 @@ const q4Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() 
               <button className="btn" style={{ flex: 1, background: '#ef6c00' }} onClick={executeShift}>🔄 Confirm Shift</button>
               <button className="btn" style={{ flex: 1, background: '#666' }} onClick={() => setShowShiftModal(false)}>Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+          {/* RETURN STUDENT MODAL */}
+      {showReturnModal && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: '#2e7d32' }}>Return Student from Leave</h2>
+              <button className="btn btn-mini" style={{ background: '#666' }} onClick={() => setShowReturnModal(false)}>✕</button>
+            </div>
+            <form onSubmit={executeReturnStudent}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ fontWeight: 'bold' }}>Select Returning Student:</label>
+                <select 
+                  required 
+                  value={returnForm.reg_no} 
+                  onChange={(e) => setReturnForm({...returnForm, reg_no: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }}
+                >
+                  <option value="">-- Select Student on Leave --</option>
+                  {/* MAGIC: This automatically filters for ONLY archived students! */}
+                  {currentData.filter(s => s.isArchived).map(s => (
+                    <option key={s.reg_no} value={s.reg_no}>{s.name} ({s.reg_no})</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontWeight: 'bold' }}>Select Destination Batch:</label>
+                <select 
+                  required 
+                  value={returnForm.new_batch} 
+                  onChange={(e) => setReturnForm({...returnForm, new_batch: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }}
+                >
+                  <option value="">-- Select Active Batch --</option>
+                  {batches.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn" style={{ flex: 1, background: '#2e7d32' }}>👋 Confirm Return</button>
+                <button type="button" className="btn" style={{ flex: 1, background: '#666' }} onClick={() => setShowReturnModal(false)}>Cancel</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
