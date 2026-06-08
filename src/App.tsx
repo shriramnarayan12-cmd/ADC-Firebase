@@ -73,19 +73,22 @@ const RAJAJINAGAR_BATCHES = [
 ];
 
 // Online authorized batches
+// Online authorized batches
 const ONLINE_BATCHES = [
   "AOB WED 11AM INDU",
   "AOB WED 10AM INDU",
   "AOB MON 12PM Medha",
   "AOB MON 8:30PM Medha",
   "AOK  Parnika Batch",
+  "AOK Parnika Batch",
   "AOK Thu 4:30PM Rohini",
+  "AOK Thu 4:30PM Rohini ",
+  "AOK THU 4:30PM ROHINI",
   "AOK WED 8:30PM Maanvi",
   "AOK FRI 6AM Maanvi",
   "AOK FRI 8PM Maanvi",
   "AOK WED 7:30PM Maanvi"
 ];
-
 const KTK_TEXT: Record<string, Record<number, string>> = {
     e1: { 8: "Very good: Work on more details with eyes, eye brows & finger tips, practice every day for one hour", 5: "Good: Work on repetitions and every time observe keenly how the relationship builds between different parts of the body. Consciously give it a wholesome treatment. Practice one hour every day", 1: "Could Improve: Practice each movement five times before you move to next and keep it going till you complete the lesson, Practice every day for 1- 2 hours" },
     e2: { 8: "Very good: Keep practising to maintain because without practise quality can drop. Work on all compositions learnt", 5: "Good: Work on finishing each action fully to get to next level, repeat practise helps in better clarity", 1: "Could Improve: Keep conscious awareness of movements & details it requires, repeat all movements / segments five times. Practise every day for 1-2 hrs" },
