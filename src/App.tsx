@@ -684,9 +684,18 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
               past_total: currentPastTotal + stats.total        // Save hard number
           };
 
-          // 5. Save everything to the database at once
+          // 5. Save student data to the database at once
           await setDoc(doc(db, 'students', regNo), updateData, { merge: true });
           
+          // --- NEW FIX: MOVE THEIR RECEIPTS TO THE NEW BATCH ---
+          const paymentsQuery = query(collection(db, 'payments'), where('reg_no', '==', regNo));
+          const paymentsSnap = await getDocs(paymentsQuery);
+          const paymentPromises = paymentsSnap.docs.map(paymentDoc => 
+              setDoc(doc(db, 'payments', paymentDoc.id), { batch_name: destinationBatch }, { merge: true })
+          );
+          await Promise.all(paymentPromises);
+          // -----------------------------------------------------
+
           alert("Batch shifted successfully and Attendance Snapshot saved!");
           
           // 6. Update the screen instantly
