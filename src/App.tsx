@@ -1587,7 +1587,7 @@ const stats = liveStats[selectedStudent.reg_no] || { present: 0, total: 0, perce
     }
   };
   
-  // --- EXPORT CALENDAR MONTH PAYMENTS TO EXCEL ---
+  // --- EXPORT COMPREHENSIVE 3-SHEET EXCEL REPORT ---
   const handleExportPaymentsByMonth = async () => {
     if (!paymentExportMonth) return;
     
@@ -1595,45 +1595,111 @@ const stats = liveStats[selectedStudent.reg_no] || { present: 0, total: 0, perce
       const startOfMonth = `${paymentExportMonth}-01T00:00:00.000Z`;
       const endOfMonth = `${paymentExportMonth}-31T23:59:59.999Z`;
 
-      const q = query(
-        collection(db, 'payments'),
-        where('payment_date', '>=', startOfMonth),
-        where('payment_date', '<=', endOfMonth)
+      // 1. Fetch ALL payments to ensure we catch Quarterly payments made in previous months
+      const paymentsSnap = await getDocs(collection(db, 'payments'));
+      const allSystemPayments: any[] = [];
+      paymentsSnap.forEach(doc => allSystemPayments.push(doc.data()));
+
+      // --- SHEET 1: BANK RECONCILIATION ---
+      // Filter strictly for payments made within the selected calendar month
+      const monthlyTransactions = allSystemPayments.filter(p => 
+        p.payment_date >= startOfMonth && p.payment_date <= endOfMonth
       );
+
+      const sheet1Data = monthlyTransactions.map(data => ({
+        "Payment Date": new Date(data.payment_date).toLocaleDateString(),
+        "Transaction ID": data.transaction_id,
+        "Student Name": data.student_name,
+        "Reg No": data.reg_no,
+        "Batch Name": data.batch_name,
+        "Period Paid": data.period_paid,
+        "Fee Plan": data.payment_frequency,
+        "Amount Paid": data.amount_paid
+      }));
+
+      // Determine Quarter Target based on selected month (e.g. "2026-07" -> "07")
+      const monthNum = paymentExportMonth.substring(5, 7);
+      let targetQuarter = "";
+      if (["06", "07", "08"].includes(monthNum)) targetQuarter = "june/jul/aug";
+      else if (["09", "10", "11"].includes(monthNum)) targetQuarter = "sep/oct/nov";
+      else if (["12", "01", "02"].includes(monthNum)) targetQuarter = "dec/jan/feb";
+      else if (["03", "04", "05"].includes(monthNum)) targetQuarter = "march";
+
+      // --- SHEET 2 & 3: STUDENT STATUS & BATCH SUMMARY ---
+      const activeStudents = currentData.filter(s => !s.isArchived);
       
-      const querySnapshot = await getDocs(q);
-      const paymentsData: any[] = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        paymentsData.push({
-          "Payment Date": new Date(data.payment_date).toLocaleDateString(),
-          "Transaction ID": data.transaction_id,
-          "Student Name": data.student_name,
-          "Reg No": data.reg_no,
-          "Batch Name": data.batch_name,
-          "Period Paid": data.period_paid,
-          "Fee Plan": data.payment_frequency,
-          "Amount Paid": data.amount_paid
+      const sheet2Data: any[] = [];
+      const batchStats: Record<string, { paid: number, pending: number, total: number }> = {};
+
+      activeStudents.forEach(student => {
+        const studentReg = student.reg_no ? String(student.reg_no).trim().toLowerCase() : "";
+        const isMonthly = student.payment_frequency === "Monthly";
+        const batchName = student.new_batch || student.batch_name || "Unknown Batch";
+        
+        // Get all payments for this specific student
+        const studentPayments = allSystemPayments.filter(p => 
+          p.reg_no && String(p.reg_no).trim().toLowerCase() === studentReg
+        );
+
+        let status = "PENDING";
+
+        if (isMonthly) {
+          // For monthly, check if they paid inside this specific calendar month
+          const paidThisMonth = studentPayments.some(p => 
+            p.payment_date >= startOfMonth && p.payment_date <= endOfMonth
+          );
+          if (paidThisMonth) status = "PAID";
+        } else {
+          // For quarterly, check if they have a receipt matching the target quarter string
+          const paidThisQuarter = studentPayments.some(p => 
+            p.period_paid && String(p.period_paid).trim().toLowerCase() === targetQuarter
+          );
+          if (paidThisQuarter) status = "PAID";
+        }
+
+        // Push to Sheet 2
+        sheet2Data.push({
+          "Batch Name": batchName,
+          "Name": student.name || "-",
+          "Reg #": student.reg_no || "-",
+          "Payment Status": status
         });
+
+        // Aggregate math for Sheet 3
+        if (!batchStats[batchName]) {
+          batchStats[batchName] = { paid: 0, pending: 0, total: 0 };
+        }
+        batchStats[batchName].total += 1;
+        if (status === "PAID") batchStats[batchName].paid += 1;
+        else batchStats[batchName].pending += 1;
       });
 
-      if (paymentsData.length === 0) {
-        alert(`No payments found in the database for ${paymentExportMonth}.`);
+      // Convert batchStats object to a clean array for Sheet 3
+      const sheet3Data = Object.keys(batchStats).sort().map(batch => ({
+        "Batch Name": batch,
+        "Total Paid": batchStats[batch].paid,
+        "Total Pending": batchStats[batch].pending,
+        "Total Students": batchStats[batch].total
+      }));
+
+      if (sheet1Data.length === 0 && sheet2Data.length === 0) {
+        alert(`No active students or payments found to export.`);
         return;
       }
 
+      // Build the unified Workbook
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(paymentsData);
-      XLSX.utils.book_append_sheet(wb, ws, "Bank Reconciliation");
-      XLSX.writeFile(wb, `ADC_Bank_Report_${paymentExportMonth}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sheet1Data), "Bank Reconciliation");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sheet2Data), "Master Student Status");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sheet3Data), "Batch Summary");
+      
+      XLSX.writeFile(wb, `ADC_Financial_Report_${paymentExportMonth}.xlsx`);
       
     } catch (error) {
-      console.error("Error exporting monthly payments: ", error);
-      alert("Failed to export data to Excel.");
+      console.error("Error generating comprehensive export: ", error);
+      alert("Failed to export data to Excel. Check console for details.");
     }
   };
-
   return (
     <div>
       {!isLoggedIn ? (
