@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { timetableData } from './timetableData';
-import { Calendar, MapPin, User, Music } from 'lucide-react';
+import { Calendar, MapPin, User } from 'lucide-react';
 
 export default function Timetable() {
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -72,7 +72,6 @@ export default function Timetable() {
         {/* STUDIO B */}
         <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
           <div className="flex items-center mb-4 bg-white p-3 rounded-lg shadow-sm border border-purple-200">
-            <Music className="w-5 h-5 text-purple-600 mr-2" />
             <h3 className="text-xl font-bold text-purple-900">Studio B</h3>
           </div>
           {dayData?.StudioB.length === 0 ? (
