@@ -361,6 +361,8 @@ export default function App() {
   const [returnForm, setReturnForm] = useState({ reg_no: "", new_batch: "" });
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameForm, setRenameForm] = useState({ old_batch: "", new_batch: "" });
   const [showBatchFeeModal, setShowBatchFeeModal] = useState(false);
   const [batchFeeForm, setBatchFeeForm] = useState({ batch_name: "", base_fee: "" });
   const [showFreqModal, setShowFreqModal] = useState(false);
@@ -878,6 +880,82 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
     }
   };
   
+  
+  const handleRenameBatch = async (e: FormEvent) => {
+    e.preventDefault();
+    const oldBatch = renameForm.old_batch;
+    const newBatch = renameForm.new_batch.trim();
+
+    if (!oldBatch || !newBatch) return alert("Please provide both old and new batch names.");
+    if (oldBatch === newBatch) return alert("New batch name must be different.");
+
+    const confirmRename = confirm(`CRITICAL ACTION:\nAre you sure you want to rename "${oldBatch}" to "${newBatch}"?\n\nThis will update all students, payments, and safely clone attendance records.`);
+    if (!confirmRename) return;
+
+    setIsSyncing(true);
+    try {
+        // 1. Update Students safely
+        const studentsQuery = query(collection(db, 'students'), where('batch_name', '==', oldBatch));
+        const studentsSnap = await getDocs(studentsQuery);
+        const studentPromises = studentsSnap.docs.map(studentDoc => {
+            const data = studentDoc.data();
+            const updatePayload: any = { batch_name: newBatch };
+            if (data.new_batch === oldBatch) updatePayload.new_batch = newBatch;
+            return setDoc(doc(db, 'students', studentDoc.id), updatePayload, { merge: true });
+        });
+        await Promise.all(studentPromises);
+
+        // 2. Update Payments to link to new name
+        const paymentsQuery = query(collection(db, 'payments'), where('batch_name', '==', oldBatch));
+        const paymentsSnap = await getDocs(paymentsQuery);
+        const paymentPromises = paymentsSnap.docs.map(paymentDoc =>
+            setDoc(doc(db, 'payments', paymentDoc.id), { batch_name: newBatch }, { merge: true })
+        );
+        await Promise.all(paymentPromises);
+
+        // 3. Clone Attendance (Leaves old ones safely untouched as backups)
+        const attendanceQuery = query(collection(db, 'attendance'), where('batch_name', '==', oldBatch));
+        const attendanceSnap = await getDocs(attendanceQuery);
+        const attendancePromises = attendanceSnap.docs.map(attDoc => {
+            const data = attDoc.data();
+            const newDocId = `${newBatch}_${data.date}`;
+            return setDoc(doc(db, 'attendance', newDocId), { ...data, batch_name: newBatch });
+        });
+        await Promise.all(attendancePromises);
+
+        // 4. Clone Base Fee
+        const feeDoc = await getDoc(doc(db, 'batches', oldBatch));
+        if (feeDoc.exists()) {
+            await setDoc(doc(db, 'batches', newBatch), feeDoc.data());
+        }
+
+        // 5. Instantly Update the Screen
+        setCurrentData(prev => prev.map(s => {
+            if (s.batch_name === oldBatch || s.new_batch === oldBatch) {
+                return { ...s, batch_name: newBatch, new_batch: s.new_batch === oldBatch ? newBatch : s.new_batch };
+            }
+            return s;
+        }));
+
+        setBatches(prev => {
+            const updated = prev.filter(b => b !== oldBatch);
+            if (!updated.includes(newBatch)) updated.push(newBatch);
+            return updated.sort();
+        });
+
+        if (currentBatchName === oldBatch) setCurrentBatchName(newBatch);
+
+        alert(`Success! "${oldBatch}" has been safely renamed to "${newBatch}".`);
+        setShowRenameModal(false);
+        setRenameForm({ old_batch: "", new_batch: "" });
+
+    } catch (err) {
+        console.error("Error renaming batch:", err);
+        alert("Failed to rename batch. Please check your connection.");
+    } finally {
+        setIsSyncing(false);
+    }
+  };
   
   const handleDeleteStudent = async () => {
     const regNo = prompt("Enter Student Registration Number to DELETE:");
@@ -2123,6 +2201,7 @@ const percent = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) *
               <button className="btn" style={{ background: '#2e7d32' }} onClick={() => setShowReturnModal(true)}>👋 Return Student from Leave</button>
               <button className="btn" onClick={() => setShowBatchFeeModal(true)}>💰 Set Batch Base Fee</button>
               <button className="btn" onClick={() => setShowFreqModal(true)}>💳 Set Student Frequency</button>
+              <button className="btn" style={{ background: '#ef6c00' }} onClick={() => setShowRenameModal(true)}>🔄 Rename Batch</button>
 
               {/* NEW MASTER EXPORT BUTTON */}
               <button className="btn" style={{ background: '#1565c0' }} onClick={handleMasterExport}>📥 Download Master Backup</button>
@@ -2314,6 +2393,52 @@ const q4Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button type="submit" className="btn" style={{ flex: 1, background: '#2e7d32' }}>👋 Confirm Return</button>
                 <button type="button" className="btn" style={{ flex: 1, background: '#666' }} onClick={() => setShowReturnModal(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+          {/* RENAME BATCH MODAL */}
+      {showRenameModal && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: '#ef6c00' }}>Rename Batch</h2>
+              <button className="btn btn-mini" style={{ background: '#666' }} onClick={() => setShowRenameModal(false)}>✕</button>
+            </div>
+            
+            <div style={{ marginBottom: '15px', background: '#fff3e0', padding: '10px', borderRadius: '6px', border: '1px solid #ffe0b2', fontSize: '0.85rem', color: '#e65100' }}>
+              <strong>Note:</strong> This will update all students, payments, and clone past attendance to the new name safely.
+            </div>
+
+            <form onSubmit={handleRenameBatch}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ fontWeight: 'bold' }}>Select Old Batch:</label>
+                <select 
+                  required 
+                  value={renameForm.old_batch} 
+                  onChange={(e) => setRenameForm({...renameForm, old_batch: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }}
+                >
+                  <option value="">-- Select Batch to Rename --</option>
+                  {batches.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontWeight: 'bold' }}>Type New Batch Name:</label>
+                <input 
+                  type="text"
+                  required 
+                  placeholder="e.g., KTK Wed-Thu 7pm Rohini P"
+                  value={renameForm.new_batch} 
+                  onChange={(e) => setRenameForm({...renameForm, new_batch: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn" style={{ flex: 1, background: '#ef6c00' }}>🔄 Confirm Rename</button>
+                <button type="button" className="btn" style={{ flex: 1, background: '#666' }} onClick={() => setShowRenameModal(false)}>Cancel</button>
               </div>
             </form>
           </div>
