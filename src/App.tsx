@@ -905,7 +905,7 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
         if (field === 'student_id' || field === 'period' || field === 'payment_date') {
             const studentId = field === 'student_id' ? value : next.student_id;
             // Look through the MASTER students list, not currentData
-            const student = students.find(s => s.reg_no === studentId);
+            const student = currentData.find(s => s.reg_no === studentId);
             
             if (student && next.period && next.payment_date && next.batch_name) {
                 // Look up the fee using the Modal's selected batch
@@ -2517,7 +2517,7 @@ const q4Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() 
                 <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>2. Select Student:</label>
                 <select required disabled={!manualPaymentForm.batch_name} value={manualPaymentForm.student_id} onChange={(e) => handleManualPaymentChange('student_id', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px', opacity: manualPaymentForm.batch_name ? 1 : 0.5 }}>
                   <option value="">-- Choose Student --</option>
-                  {students.filter(s => s.batch_name === manualPaymentForm.batch_name).map(s => (
+                  {currentData.filter(s => s.batch_name === manualPaymentForm.batch_name).map(s => (
                     <option key={s.reg_no} value={s.reg_no}>{s.name} ({s.reg_no}) - {s.payment_frequency}</option>
                   ))}
                 </select>
