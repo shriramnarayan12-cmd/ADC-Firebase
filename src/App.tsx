@@ -365,11 +365,12 @@ export default function App() {
   const [renameForm, setRenameForm] = useState({ old_batch: "", new_batch: "" });
   const [showManualPaymentModal, setShowManualPaymentModal] = useState(false);
   const [manualPaymentForm, setManualPaymentForm] = useState({
+    batch_name: "",
     student_id: "",
     student_name: "",
     frequency: "Monthly",
     period: "",
-    payment_date: new Date().toISOString().split('T')[0], // Defaults to today
+    payment_date: new Date().toISOString().split('T')[0],
     amount: "",
     transaction_id: ""
   });
@@ -893,13 +894,22 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
   const handleManualPaymentChange = (field: string, value: string) => {
     setManualPaymentForm(prev => {
         const next = { ...prev, [field]: value };
-        // Auto-calculate exact fee when Student, Period, or Date changes
+        
+        // If they change the batch, wipe the student selection clean
+        if (field === 'batch_name') {
+            next.student_id = "";
+            next.student_name = "";
+            next.amount = "";
+        }
+
         if (field === 'student_id' || field === 'period' || field === 'payment_date') {
             const studentId = field === 'student_id' ? value : next.student_id;
-            const student = currentData.find(s => s.reg_no === studentId);
+            // Look through the MASTER students list, not currentData
+            const student = students.find(s => s.reg_no === studentId);
             
-            if (student && next.period && next.payment_date) {
-                const baseFee = batchesData[currentBatchName]?.base_fee || 1500;
+            if (student && next.period && next.payment_date && next.batch_name) {
+                // Look up the fee using the Modal's selected batch
+                const baseFee = batchesData[next.batch_name]?.base_fee || 1500;
                 const isQuarterly = student.payment_frequency === 'Quarterly';
                 const payDate = new Date(next.payment_date);
                 const dateNum = payDate.getDate();
@@ -908,13 +918,11 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
                 if (isQuarterly) {
                     calcAmount = baseFee * 3;
                     if (next.period === 'june/jul/aug') calcAmount = baseFee * 3.5;
-                    // Apply Parent Late Fee Logic
                     if (dateNum > 21) calcAmount += 1000;
                     else if (dateNum > 15) calcAmount += 500;
                 } else {
                     calcAmount = baseFee;
                     if (next.period === 'Jun') calcAmount = baseFee * 1.5;
-                    // Apply Parent Late Fee Logic
                     if (dateNum > 8) calcAmount += 1000;
                     else if (dateNum > 5) calcAmount += 500;
                 }
@@ -940,7 +948,7 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
         const newPayment = {
             reg_no: manualPaymentForm.student_id,
             student_name: manualPaymentForm.student_name,
-            batch_name: currentBatchName,
+            batch_name: manualPaymentForm.batch_name,
             payment_frequency: manualPaymentForm.frequency,
             period_paid: manualPaymentForm.period,
             amount_paid: Number(manualPaymentForm.amount),
@@ -2498,33 +2506,43 @@ const q4Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() 
 
             <form onSubmit={handleManualPaymentSubmit}>
               <div style={{ marginBottom: '10px' }}>
-                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>1. Select Student (from {currentBatchName}):</label>
-                <select required value={manualPaymentForm.student_id} onChange={(e) => handleManualPaymentChange('student_id', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }}>
-                  <option value="">-- Choose Student --</option>
-                  {currentData.map(s => <option key={s.reg_no} value={s.reg_no}>{s.name} ({s.reg_no}) - {s.payment_frequency}</option>)}
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>1. Select Batch:</label>
+                <select required value={manualPaymentForm.batch_name} onChange={(e) => handleManualPaymentChange('batch_name', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }}>
+                  <option value="">-- Choose Batch --</option>
+                  {batches.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
 
               <div style={{ marginBottom: '10px' }}>
-                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>2. Date of Payment (For Auto-Math):</label>
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>2. Select Student:</label>
+                <select required disabled={!manualPaymentForm.batch_name} value={manualPaymentForm.student_id} onChange={(e) => handleManualPaymentChange('student_id', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px', opacity: manualPaymentForm.batch_name ? 1 : 0.5 }}>
+                  <option value="">-- Choose Student --</option>
+                  {students.filter(s => s.batch_name === manualPaymentForm.batch_name).map(s => (
+                    <option key={s.reg_no} value={s.reg_no}>{s.name} ({s.reg_no}) - {s.payment_frequency}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>3. Date of Payment (For Auto-Math):</label>
                 <input type="date" required value={manualPaymentForm.payment_date} onChange={(e) => handleManualPaymentChange('payment_date', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }} />
               </div>
 
               <div style={{ marginBottom: '10px' }}>
-                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>3. Select Period:</label>
-                <select required value={manualPaymentForm.period} onChange={(e) => handleManualPaymentChange('period', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>4. Select Period:</label>
+                <select required disabled={!manualPaymentForm.student_id} value={manualPaymentForm.period} onChange={(e) => handleManualPaymentChange('period', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px', opacity: manualPaymentForm.student_id ? 1 : 0.5 }}>
                   <option value="">-- Choose Period --</option>
                   {(manualPaymentForm.frequency === 'Quarterly' ? ["june/jul/aug", "sep/oct/nov", "dec/jan/feb", "mar/apr/may"] : ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May"]).map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
 
               <div style={{ marginBottom: '10px' }}>
-                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>4. Final Amount (Auto-Calculated):</label>
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>5. Final Amount (Auto-Calculated):</label>
                 <input type="number" required placeholder="0" value={manualPaymentForm.amount} onChange={(e) => setManualPaymentForm({...manualPaymentForm, amount: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '2px solid #0288d1', marginTop: '5px', fontWeight: 'bold' }} />
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>5. Proof / Transaction ID:</label>
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>6. Proof / Transaction ID:</label>
                 <input type="text" required placeholder="e.g., 12-digit UPI or 'CASH-JULY'" value={manualPaymentForm.transaction_id} onChange={(e) => setManualPaymentForm({...manualPaymentForm, transaction_id: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }} />
               </div>
 
