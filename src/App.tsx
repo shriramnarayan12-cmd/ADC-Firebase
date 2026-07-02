@@ -363,6 +363,16 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [renameForm, setRenameForm] = useState({ old_batch: "", new_batch: "" });
+  const [showManualPaymentModal, setShowManualPaymentModal] = useState(false);
+  const [manualPaymentForm, setManualPaymentForm] = useState({
+    student_id: "",
+    student_name: "",
+    frequency: "Monthly",
+    period: "",
+    payment_date: new Date().toISOString().split('T')[0], // Defaults to today
+    amount: "",
+    transaction_id: ""
+  });
   const [showBatchFeeModal, setShowBatchFeeModal] = useState(false);
   const [batchFeeForm, setBatchFeeForm] = useState({ batch_name: "", base_fee: "" });
   const [showFreqModal, setShowFreqModal] = useState(false);
@@ -880,6 +890,79 @@ stats[student.reg_no] = { present, total, percent }; // FIXED: Now uses Registra
     }
   };
   
+  const handleManualPaymentChange = (field: string, value: string) => {
+    setManualPaymentForm(prev => {
+        const next = { ...prev, [field]: value };
+        // Auto-calculate exact fee when Student, Period, or Date changes
+        if (field === 'student_id' || field === 'period' || field === 'payment_date') {
+            const studentId = field === 'student_id' ? value : next.student_id;
+            const student = currentData.find(s => s.reg_no === studentId);
+            
+            if (student && next.period && next.payment_date) {
+                const baseFee = batchesData[currentBatchName]?.base_fee || 1500;
+                const isQuarterly = student.payment_frequency === 'Quarterly';
+                const payDate = new Date(next.payment_date);
+                const dateNum = payDate.getDate();
+
+                let calcAmount = 0;
+                if (isQuarterly) {
+                    calcAmount = baseFee * 3;
+                    if (next.period === 'june/jul/aug') calcAmount = baseFee * 3.5;
+                    // Apply Parent Late Fee Logic
+                    if (dateNum > 21) calcAmount += 1000;
+                    else if (dateNum > 15) calcAmount += 500;
+                } else {
+                    calcAmount = baseFee;
+                    if (next.period === 'Jun') calcAmount = baseFee * 1.5;
+                    // Apply Parent Late Fee Logic
+                    if (dateNum > 8) calcAmount += 1000;
+                    else if (dateNum > 5) calcAmount += 500;
+                }
+                next.amount = calcAmount.toString();
+                next.frequency = student.payment_frequency;
+                next.student_name = student.name;
+            }
+        }
+        return next;
+    });
+  };
+
+  const handleManualPaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualPaymentForm.student_id || !manualPaymentForm.period || !manualPaymentForm.amount || !manualPaymentForm.transaction_id) {
+        return alert("Please fill all fields.");
+    }
+    setIsSyncing(true);
+    try {
+        const dateObj = new Date(manualPaymentForm.payment_date);
+        dateObj.setHours(12, 0, 0, 0); // Normalize time
+
+        const newPayment = {
+            reg_no: manualPaymentForm.student_id,
+            student_name: manualPaymentForm.student_name,
+            batch_name: currentBatchName,
+            payment_frequency: manualPaymentForm.frequency,
+            period_paid: manualPaymentForm.period,
+            amount_paid: Number(manualPaymentForm.amount),
+            transaction_id: manualPaymentForm.transaction_id.trim(),
+            payment_date: dateObj.toISOString()
+        };
+
+        const newDocRef = doc(collection(db, 'payments'));
+        await setDoc(newDocRef, newPayment);
+
+        // Update grid instantly
+        setPaymentData(prev => [...prev, newPayment]);
+        alert("Manual payment successfully logged!");
+        setShowManualPaymentModal(false);
+        setManualPaymentForm({ student_id: "", student_name: "", frequency: "Monthly", period: "", payment_date: new Date().toISOString().split('T')[0], amount: "", transaction_id: "" });
+    } catch (err) {
+        console.error("Error logging payment:", err);
+        alert("Failed to save payment.");
+    } finally {
+        setIsSyncing(false);
+    }
+  };
   
   const handleRenameBatch = async (e: FormEvent) => {
     e.preventDefault();
@@ -2202,6 +2285,7 @@ const percent = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) *
               <button className="btn" onClick={() => setShowBatchFeeModal(true)}>💰 Set Batch Base Fee</button>
               <button className="btn" onClick={() => setShowFreqModal(true)}>💳 Set Student Frequency</button>
               <button className="btn" style={{ background: '#ef6c00' }} onClick={() => setShowRenameModal(true)}>🔄 Rename Batch</button>
+              <button className="btn" style={{ background: '#0288d1' }} onClick={() => setShowManualPaymentModal(true)}>💰 Log Manual Payment</button>
 
               {/* NEW MASTER EXPORT BUTTON */}
               <button className="btn" style={{ background: '#1565c0' }} onClick={handleMasterExport}>📥 Download Master Backup</button>
@@ -2399,6 +2483,59 @@ const q4Receipt = studentPayments.find(p => p.period_paid?.trim().toLowerCase() 
         </div>
       )}
 
+          {/* LOG MANUAL PAYMENT MODAL */}
+      {showManualPaymentModal && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: '#0288d1' }}>Log Manual Payment</h2>
+              <button className="btn btn-mini" style={{ background: '#666' }} onClick={() => setShowManualPaymentModal(false)}>✕</button>
+            </div>
+            
+            <div style={{ marginBottom: '15px', background: '#e1f5fe', padding: '10px', borderRadius: '6px', border: '1px solid #b3e5fc', fontSize: '0.85rem', color: '#01579b' }}>
+              <strong>Note:</strong> Select the exact date they paid. The system will auto-calculate late fees, but you can override the final amount.
+            </div>
+
+            <form onSubmit={handleManualPaymentSubmit}>
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>1. Select Student (from {currentBatchName}):</label>
+                <select required value={manualPaymentForm.student_id} onChange={(e) => handleManualPaymentChange('student_id', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }}>
+                  <option value="">-- Choose Student --</option>
+                  {currentData.map(s => <option key={s.reg_no} value={s.reg_no}>{s.name} ({s.reg_no}) - {s.payment_frequency}</option>)}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>2. Date of Payment (For Auto-Math):</label>
+                <input type="date" required value={manualPaymentForm.payment_date} onChange={(e) => handleManualPaymentChange('payment_date', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }} />
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>3. Select Period:</label>
+                <select required value={manualPaymentForm.period} onChange={(e) => handleManualPaymentChange('period', e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }}>
+                  <option value="">-- Choose Period --</option>
+                  {(manualPaymentForm.frequency === 'Quarterly' ? ["june/jul/aug", "sep/oct/nov", "dec/jan/feb", "mar/apr/may"] : ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May"]).map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>4. Final Amount (Auto-Calculated):</label>
+                <input type="number" required placeholder="0" value={manualPaymentForm.amount} onChange={(e) => setManualPaymentForm({...manualPaymentForm, amount: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '2px solid #0288d1', marginTop: '5px', fontWeight: 'bold' }} />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>5. Proof / Transaction ID:</label>
+                <input type="text" required placeholder="e.g., 12-digit UPI or 'CASH-JULY'" value={manualPaymentForm.transaction_id} onChange={(e) => setManualPaymentForm({...manualPaymentForm, transaction_id: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '5px' }} />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn" style={{ flex: 1, background: '#0288d1' }}>✅ Save Receipt</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+          
           {/* RENAME BATCH MODAL */}
       {showRenameModal && (
         <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
